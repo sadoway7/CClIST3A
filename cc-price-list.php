@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Ceramics Canada Price List
  * Description: Manages product pricing with size variations and quantity breaks, exposed via REST API
- * Version: 1.0.1
+ * Version: 1.0.5
  * Author: Ceramics Canada
  * Text Domain: cc-price-list
  * GitHub Plugin URI: sadoway7/CClIST3A
@@ -27,7 +27,7 @@ require_once CC_PRICE_LIST_PLUGIN_DIR . 'admin/admin.php';
 register_activation_hook(__FILE__, 'cc_price_list_activate');
 
 function cc_price_list_activate() {
-    // Create custom database tables if needed
+    // Create custom database tables if needed - moved to init for debugging
     global $wpdb;
     
     error_log('Plugin activation hook triggered.');
@@ -89,6 +89,43 @@ function cc_price_list_activate() {
 
 // Initialize the plugin
 function cc_price_list_init() {
+  global $wpdb;
+    // FOR DEBUGGING: Force table creation on every load.  Remove this in production!
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    $products_table = $wpdb->prefix . 'cc_products';
+    $variations_table = $wpdb->prefix . 'cc_product_variations';
+    
+    $sql = "CREATE TABLE IF NOT EXISTS $products_table (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        category varchar(100) NOT NULL,
+        item varchar(255) NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        KEY category (category),
+        KEY item (item)
+    ) $charset_collate;";
+    
+    $sql .= "CREATE TABLE IF NOT EXISTS $variations_table (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        product_id bigint(20) NOT NULL,
+        size varchar(50) DEFAULT NULL,
+        price decimal(10,2) NOT NULL,
+        quantity_min int NOT NULL DEFAULT 1,
+        quantity_max int DEFAULT NULL,
+        discount decimal(5,2) DEFAULT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        KEY product_id (product_id),
+        FOREIGN KEY (product_id) REFERENCES $products_table(id) ON DELETE CASCADE
+    ) $charset_collate;";
+    
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+    
     // Register REST API endpoints
     add_action('rest_api_init', function () {
         register_rest_route('cclist/v1', '/products', [
