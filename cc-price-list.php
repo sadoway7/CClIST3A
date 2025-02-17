@@ -30,6 +30,8 @@ function cc_price_list_activate() {
     // Create custom database tables if needed
     global $wpdb;
     
+    error_log('Plugin activation hook triggered.');
+    
     $charset_collate = $wpdb->get_charset_collate();
     
     $products_table = $wpdb->prefix . 'cc_products';
@@ -61,8 +63,28 @@ function cc_price_list_activate() {
         FOREIGN KEY (product_id) REFERENCES $products_table(id) ON DELETE CASCADE
     ) $charset_collate;";
     
+    error_log('SQL for table creation: ' . $sql);
+    
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
+    
+    if (!empty($wpdb->last_error)) {
+      error_log('dbDelta error: ' . $wpdb->last_error);
+    } else {
+        error_log('dbDelta executed successfully.');
+    }
+
+    // Check if tables exist after dbDelta
+    if ($wpdb->get_var("SHOW TABLES LIKE '$products_table'") != $products_table) {
+        error_log("Table $products_table does not exist after dbDelta.");
+    } else {
+         error_log("Table $products_table exists after dbDelta.");
+    }
+    if ($wpdb->get_var("SHOW TABLES LIKE '$variations_table'") != $variations_table) {
+        error_log("Table $variations_table does not exist after dbDelta.");
+    } else {
+         error_log("Table $variations_table exists after dbDelta.");
+    }
 }
 
 // Initialize the plugin

@@ -23,20 +23,37 @@ add_action('admin_menu', 'cc_price_list_admin_menu');
 
 // Process CSV import
 function cc_process_csv_import($file) {
+    error_log('Starting CSV import process...');
     if (!current_user_can('manage_options')) {
+        error_log('Insufficient permissions for CSV import.');
         return new WP_Error('permission_error', 'Insufficient permissions');
     }
 
     $csv_data = array_map('str_getcsv', file($file['tmp_name']));
+
+    if (empty($csv_data)) {
+        error_log('CSV file is empty or could not be read.');
+        return new WP_Error('empty_file', 'CSV file is empty or could not be read.');
+    }
+    
+    error_log('CSV data read: ' . print_r($csv_data, true));
     $headers = array_shift($csv_data); // Remove headers
+    error_log('CSV headers: ' . print_r($headers, true));
 
     $expected_headers = ['category', 'item', 'size', 'price', 'quantity_min', 'quantity_max', 'discount'];
     if ($headers !== $expected_headers) {
+        error_log('CSV format error: Headers do not match expected format.');
         return new WP_Error('invalid_format', 'CSV format does not match expected columns');
     }
 
     $products = [];
-    foreach ($csv_data as $row) {
+    foreach ($csv_data as $row_num => $row) {
+        error_log('Processing row ' . ($row_num + 1) . ': ' . print_r($row, true));
+        if (count($row) !== count($expected_headers)) {
+            error_log('Skipping row ' . ($row_num + 1) . ': Incorrect number of columns.');
+            continue; // Skip rows with incorrect number of columns
+        }
+        
         $product_key = $row[0] . '|' . $row[1]; // category|item as key
         
         if (!isset($products[$product_key])) {
@@ -56,10 +73,18 @@ function cc_process_csv_import($file) {
         ];
     }
 
+    error_log('Processed products array: ' . print_r($products, true));
+    
     foreach ($products as $product) {
-        cc_save_product($product);
+        $result = cc_save_product($product);
+        if (is_wp_error($result)) {
+            error_log('Error saving product: ' . $result->get_error_message() . ' - Data: ' . print_r($product, true));
+        } else {
+            error_log('Product saved successfully. Product ID: ' . $result);
+        }
     }
-
+    
+    error_log('CSV import process completed.');
     return true;
 }
 
