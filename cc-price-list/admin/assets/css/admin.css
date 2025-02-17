@@ -1,0 +1,137 @@
+/* Product Form Dialog */
+#product-form-dialog {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    padding: 20px;
+    margin: 20px 0;
+    max-width: 800px;
+}
+
+#product-form label {
+    display: inline-block;
+    width: 120px;
+    font-weight: 600;
+}
+
+#product-form input[type="text"],
+#product-form input[type="number"] {
+    width: 200px;
+}
+
+/* Variations */
+.variations-list {
+    margin: 20px 0;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+}
+
+.variation-row {
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    position: relative;
+}
+
+.variation-row:last-child {
+    margin-bottom: 0;
+}
+
+.variation-row p {
+    margin: 10px 0;
+}
+
+.variation-row .description {
+    color: #666;
+    font-style: italic;
+    margin-left: 10px;
+    font-size: 12px;
+}
+
+.remove-variation {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+
+/* Variations Display in Table */
+.variations-display {
+    max-width: 300px;
+}
+
+.variation-entry {
+    padding: 5px 10px;
+    margin: 2px 0;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+}
+
+/* Filters */
+.tablenav.top {
+    margin: 20px 0;
+}
+
+#filter-category {
+    margin-right: 10px;
+}
+
+#search-products {
+    padding: 3px 8px;
+    font-size: 1.7ex;
+    line-height: 1.7ex;
+    height: 2.2ex;
+}
+
+/* Action Buttons */
+.page-title-action {
+    margin-left: 4px;
+    padding: 4px 8px;
+}
+
+.submit {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+/* Table Styles */
+.wp-list-table th {
+    font-weight: 600;
+}
+
+.wp-list-table td {
+    vertical-align: top;
+}
+
+.wp-list-table .button {
+    margin-right: 5px;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    #product-form label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    #product-form input[type="text"],
+    #product-form input[type="number"] {
+        width: 100%;
+    }
+    
+    .variations-display {
+        max-width: none;
+    }
+    
+    .variation-row {
+        padding-right: 40px;
+    }
+}
+
+/* Utilities */
+.hidden {
+    display: none;
+}
