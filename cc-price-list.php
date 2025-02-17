@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Ceramics Canada Price List
  * Description: Manages product pricing with size variations and quantity breaks, exposed via REST API
- * Version: 1.0.5
+ * Version: 1.0.7
  * Author: Ceramics Canada
  * Text Domain: cc-price-list
  * GitHub Plugin URI: sadoway7/CClIST3A
@@ -34,23 +34,15 @@ function cc_price_list_activate() {
     
     $charset_collate = $wpdb->get_charset_collate();
     
-    $products_table = $wpdb->prefix . 'cc_products';
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
+    // TEMPORARY: Using old plugin's table names for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
+    $variations_table = $wpdb->prefix . 'cclist2a_products'; // Old plugin didn't have variations table
+    $categories_table = $wpdb->prefix . 'cclist2a_categories';
     
     $sql = "CREATE TABLE IF NOT EXISTS $products_table (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         category varchar(100) NOT NULL,
         item varchar(255) NOT NULL,
-        created_at datetime DEFAULT CURRENT_TIMESTAMP,
-        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY  (id),
-        KEY category (category),
-        KEY item (item)
-    ) $charset_collate;";
-    
-    $sql .= "CREATE TABLE IF NOT EXISTS $variations_table (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        product_id bigint(20) NOT NULL,
         size varchar(50) DEFAULT NULL,
         price decimal(10,2) NOT NULL,
         quantity_min int NOT NULL DEFAULT 1,
@@ -59,8 +51,14 @@ function cc_price_list_activate() {
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY  (id),
-        KEY product_id (product_id),
-        FOREIGN KEY (product_id) REFERENCES $products_table(id) ON DELETE CASCADE
+        KEY category (category),
+        KEY item (item)
+    ) $charset_collate;";
+
+    $sql .= "CREATE TABLE IF NOT EXISTS $categories_table (
+      id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      category_name varchar(191) NOT NULL,
+      PRIMARY KEY  (id)
     ) $charset_collate;";
     
     error_log('SQL for table creation: ' . $sql);
@@ -80,10 +78,10 @@ function cc_price_list_activate() {
     } else {
          error_log("Table $products_table exists after dbDelta.");
     }
-    if ($wpdb->get_var("SHOW TABLES LIKE '$variations_table'") != $variations_table) {
-        error_log("Table $variations_table does not exist after dbDelta.");
+    if ($wpdb->get_var("SHOW TABLES LIKE '$categories_table'") != $categories_table) {
+        error_log("Table $categories_table does not exist after dbDelta.");
     } else {
-         error_log("Table $variations_table exists after dbDelta.");
+         error_log("Table $categories_table exists after dbDelta.");
     }
 }
 
@@ -93,23 +91,15 @@ function cc_price_list_init() {
     // FOR DEBUGGING: Force table creation on every load.  Remove this in production!
     $charset_collate = $wpdb->get_charset_collate();
     
-    $products_table = $wpdb->prefix . 'cc_products';
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
+    // TEMPORARY: Using old plugin's table names for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
+        $categories_table = $wpdb->prefix . 'cclist2a_categories';
+
     
     $sql = "CREATE TABLE IF NOT EXISTS $products_table (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         category varchar(100) NOT NULL,
         item varchar(255) NOT NULL,
-        created_at datetime DEFAULT CURRENT_TIMESTAMP,
-        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY  (id),
-        KEY category (category),
-        KEY item (item)
-    ) $charset_collate;";
-    
-    $sql .= "CREATE TABLE IF NOT EXISTS $variations_table (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
-        product_id bigint(20) NOT NULL,
         size varchar(50) DEFAULT NULL,
         price decimal(10,2) NOT NULL,
         quantity_min int NOT NULL DEFAULT 1,
@@ -118,8 +108,14 @@ function cc_price_list_init() {
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY  (id),
-        KEY product_id (product_id),
-        FOREIGN KEY (product_id) REFERENCES $products_table(id) ON DELETE CASCADE
+        KEY category (category),
+        KEY item (item)
+    ) $charset_collate;";
+
+     $sql .= "CREATE TABLE IF NOT EXISTS $categories_table (
+      id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      category_name varchar(191) NOT NULL,
+      PRIMARY KEY  (id)
     ) $charset_collate;";
     
 

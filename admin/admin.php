@@ -60,10 +60,11 @@ function cc_process_csv_import($file) {
             $products[$product_key] = [
                 'category' => $row[0],
                 'item' => $row[1],
-                'variations' => []
+                'variations' => [] // We are not using variations table - keep structure
             ];
         }
 
+        //we arent usign variations table
         $products[$product_key]['variations'][] = [
             'size' => $row[2] ?: null,
             'price' => floatval($row[3]),
@@ -132,17 +133,16 @@ function cc_price_list_admin_page() {
         if (!isset($grouped_products[$product->category][$product->item])) {
             $grouped_products[$product->category][$product->item] = [
                 'id' => $product->id,
-                'variations' => []
-            ];
-        }
-        if ($product->variation_id) {
-            $grouped_products[$product->category][$product->item]['variations'][] = [
-                'id' => $product->variation_id,
-                'size' => $product->size,
-                'price' => $product->price,
-                'quantity_min' => $product->quantity_min,
-                'quantity_max' => $product->quantity_max,
-                'discount' => $product->discount
+                 //we arent using variations
+                'variations' => [
+                  [
+                    'size' => $product->size,
+                    'price' => $product->price,
+                    'quantity_min' => $product->quantity_min,
+                    'quantity_max' => $product->quantity_max,
+                    'discount' => $product->discount,
+                  ]
+                ]
             ];
         }
     }
@@ -188,12 +188,33 @@ function cc_price_list_admin_page() {
                     <input type="text" id="product-item" name="item">
                 </p>
                 
-                <div id="variations-container">
+                <!-- We are not using variations for this diagnostic step -->
+                <div id="variations-container" style="display:none;">
                     <h3>Variations</h3>
                     <div class="variations-list"></div>
                     <button type="button" class="button add-variation">Add Variation</button>
                 </div>
                 
+                 <p>
+                    <label for="product-size">Size:</label>
+                    <input type="text" id="product-size" name="size">
+                </p>
+                <p>
+                    <label for="product-price">Price:</label>
+                    <input type="number" step="0.01" id="product-price" name="price">
+                </p>
+                 <p>
+                    <label for="product-quantity-min">quantity_min:</label>
+                    <input type="text" id="product-quantity-min" name="quantity_min">
+                </p>
+                <p>
+                    <label for="product-quantity-max">quantity_max:</label>
+                    <input type="text" id="product-quantity-max" name="quantity_max">
+                </p>
+                <p>
+                    <label for="product-discount">discount:</label>
+                    <input type="text" id="product-discount" name="discount">
+                </p>
                 <p class="submit">
                     <input type="submit" class="button button-primary" value="Save Product">
                     <button type="button" class="button cancel-form">Cancel</button>
@@ -252,16 +273,19 @@ function cc_price_list_admin_page() {
                                 </div>
                             </td>
                             <td>
+                            <!-- We are not supporting edit/delete at this diagnostic step -->
+                            <!--
                                 <button type="button" class="button edit-product" 
-                                        data-product="<?php echo esc_attr(json_encode($item_data)); ?>"
-                                        data-category="<?php echo esc_attr($category); ?>"
-                                        data-item="<?php echo esc_attr($item_name); ?>">
+                                        data-product="<?php //echo esc_attr(json_encode($item_data)); ?>"
+                                        data-category="<?php //echo esc_attr($category); ?>"
+                                        data-item="<?php //echo esc_attr($item_name); ?>">
                                     Edit
                                 </button>
                                 <button type="button" class="button delete-product" 
-                                        data-product-id="<?php echo esc_attr($item_data['id']); ?>">
+                                        data-product-id="<?php //echo esc_attr($item_data['id']); ?>">
                                     Delete
                                 </button>
+                                -->
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -284,14 +308,22 @@ function cc_price_list_ajax_handler() {
     
     switch ($action) {
         case 'save_product':
-            $product_data = json_decode(stripslashes($_POST['product_data']), true);
-            error_log('Received product data: ' . print_r($product_data, true));
-            $result = cc_save_product($product_data);
-            if (is_wp_error($result)) {
-                wp_send_json_error($result->get_error_message());
-            }
-            wp_send_json_success(['product_id' => $result]);
-            break;
+          $product_data = [
+            'category' => isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '',
+            'item' => isset($_POST['item']) ? sanitize_text_field($_POST['item']) : '',
+            'size' => isset($_POST['size']) ? sanitize_text_field($_POST['size']) : null,
+            'price' => isset($_POST['price']) ? (float) $_POST['price'] : 0,
+            'quantity_min' => isset($_POST['quantity_min']) ? (int) $_POST['quantity_min'] : 1,
+            'quantity_max' => isset($_POST['quantity_max']) ? (int) $_POST['quantity_max'] : null,
+            'discount' => isset($_POST['discount']) ? (float) $_POST['discount'] : null
+          ];
+          error_log('Received product data: ' . print_r($product_data, true));
+          $result = cc_save_product($product_data);
+          if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+          }
+          wp_send_json_success(['product_id' => $result]);
+        break;
             
         case 'delete_product':
             $product_id = intval($_POST['product_id']);
@@ -301,7 +333,8 @@ function cc_price_list_ajax_handler() {
             }
             wp_send_json_success();
             break;
-            
+          //we arent supporting variations
+            /*
         case 'delete_variation':
             $variation_id = intval($_POST['variation_id']);
             $result = cc_delete_variation($variation_id);
@@ -310,7 +343,7 @@ function cc_price_list_ajax_handler() {
             }
             wp_send_json_success();
             break;
-            
+            */
         case 'get_example_csv':
             wp_send_json_success(['content' => cc_get_example_csv()]);
             break;

@@ -12,22 +12,21 @@ if (!defined('ABSPATH')) {
  */
 function cc_get_products_for_api(\WP_REST_Request $request) {
     global $wpdb;
-    
-    $products_table = $wpdb->prefix . 'cc_products';
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
+
+    // TEMPORARY: Using old plugin's table name for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
     
     $query = "
         SELECT 
-            p.category,
-            p.item,
-            v.size,
-            v.price,
-            v.quantity_min,
-            v.quantity_max,
-            v.discount
-        FROM $products_table p
-        LEFT JOIN $variations_table v ON p.id = v.product_id
-        ORDER BY p.category, p.item, v.size, v.quantity_min
+            category,
+            item,
+            size,
+            price,
+            quantity_min,
+            quantity_max,
+            discount
+        FROM $products_table
+        ORDER BY category, item, size, quantity_min
     ";
     
     $results = $wpdb->get_results($query);
@@ -57,23 +56,21 @@ function cc_get_products_for_api(\WP_REST_Request $request) {
 function cc_get_all_products() {
     global $wpdb;
     
-    $products_table = $wpdb->prefix . 'cc_products';
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
+    // TEMPORARY: Using old plugin's table name for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
     
     $query = "
         SELECT 
-            p.id,
-            p.category,
-            p.item,
-            v.id as variation_id,
-            v.size,
-            v.price,
-            v.quantity_min,
-            v.quantity_max,
-            v.discount
-        FROM $products_table p
-        LEFT JOIN $variations_table v ON p.id = v.product_id
-        ORDER BY p.category, p.item, v.size, v.quantity_min
+            id,
+            category,
+            item,
+            size,
+            price,
+            quantity_min,
+            quantity_max,
+            discount
+        FROM $products_table
+        ORDER BY category, item, size, quantity_min
     ";
     
     return $wpdb->get_results($query);
@@ -85,8 +82,8 @@ function cc_get_all_products() {
 function cc_save_product($data) {
     global $wpdb;
     
-    $products_table = $wpdb->prefix . 'cc_products';
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
+    // TEMPORARY: Using old plugin's table name for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
     
     // Start transaction
     $wpdb->query('START TRANSACTION');
@@ -99,12 +96,14 @@ function cc_save_product($data) {
         ];
         
         if (!empty($data['product_id'])) {
-            $wpdb->update(
+          //We dont have an update because we are using the old plugins db
+            /*$wpdb->update(
                 $products_table,
                 $product,
                 ['id' => $data['product_id']]
             );
             $product_id = $data['product_id'];
+            */
         } else {
             $wpdb->insert($products_table, $product);
             $product_id = $wpdb->insert_id;
@@ -113,12 +112,13 @@ function cc_save_product($data) {
         if ($wpdb->last_error) {
             throw new Exception($wpdb->last_error);
         }
-        
+
         // Handle variations
         if (!empty($data['variations']) && is_array($data['variations'])) {
             foreach ($data['variations'] as $variation) {
                 $variation_data = [
-                    'product_id' => $product_id,
+                    'category' => $product['category'], // Use the main product's category
+                    'item' => $product['item'],       // Use the main product's item
                     'size' => isset($variation['size']) ? sanitize_text_field($variation['size']) : null,
                     'price' => isset($variation['price']) ? (float) $variation['price'] : 0,
                     'quantity_min' => isset($variation['quantity_min']) ? (int) $variation['quantity_min'] : 1,
@@ -127,13 +127,17 @@ function cc_save_product($data) {
                 ];
                 
                 if (!empty($variation['id'])) {
+                    //we dont have an update - use insert
+                    /*
                     $wpdb->update(
-                        $variations_table,
+                        $products_table,
                         $variation_data,
                         ['id' => $variation['id']]
                     );
+                    */
+                     $wpdb->insert($products_table, $variation_data);
                 } else {
-                    $wpdb->insert($variations_table, $variation_data);
+                    $wpdb->insert($products_table, $variation_data);
                 }
                 
                 if ($wpdb->last_error) {
@@ -143,7 +147,7 @@ function cc_save_product($data) {
         }
         
         $wpdb->query('COMMIT');
-        return $product_id;
+        return isset($product_id) ? $product_id : true;
         
     } catch (Exception $e) {
         $wpdb->query('ROLLBACK');
@@ -151,25 +155,27 @@ function cc_save_product($data) {
         return new WP_Error('save_failed', $e->getMessage());
     }
 }
-
+/**
+ * Adds a category to the categories table if it does not already exist.
+ *
+ * @param string $category The category name to add.
+ */
+function add_category_if_not_exists($category){
+    global $wpdb;
+    $table_categories = $wpdb->prefix . 'cclist2a_categories'; // Using the old plugin's categories table
+    if( !$wpdb->get_row("SELECT * FROM $table_categories WHERE category_name = '" . $category . "'") ){
+        $wpdb->insert($table_categories, array('category_name' => $category));
+        error_log("Adding category: " . $category);
+    }
+}
 /**
  * Delete a product and its variations
  */
 function cc_delete_product($product_id) {
     global $wpdb;
     
-    $products_table = $wpdb->prefix . 'cc_products';
+    // TEMPORARY: Using old plugin's table name for debugging
+    $products_table = $wpdb->prefix . 'cclist2a_products';
     
     return $wpdb->delete($products_table, ['id' => $product_id]);
-}
-
-/**
- * Delete a specific variation
- */
-function cc_delete_variation($variation_id) {
-    global $wpdb;
-    
-    $variations_table = $wpdb->prefix . 'cc_product_variations';
-    
-    return $wpdb->delete($variations_table, ['id' => $variation_id]);
 }
