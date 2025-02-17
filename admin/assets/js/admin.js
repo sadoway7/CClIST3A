@@ -9,11 +9,11 @@ jQuery(document).ready(function($) {
             </p>
             <p>
                 <label>Price:</label>
-                <input type="number" name="price" class="variation-price" step="0.01" required>
+                <input type="number" name="price" class="variation-price" step="0.01">
             </p>
             <p>
                 <label>Min Quantity:</label>
-                <input type="number" name="quantity_min" class="variation-quantity-min" value="1" required>
+                <input type="number" name="quantity_min" class="variation-quantity-min" value="1">
             </p>
             <p>
                 <label>Max Quantity:</label>
@@ -27,6 +27,41 @@ jQuery(document).ready(function($) {
             <button type="button" class="button remove-variation">Remove</button>
         </div>
     `;
+
+    // Download example CSV
+    $('#download-example-csv').on('click', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'cc_price_list_action',
+                cc_action: 'get_example_csv',
+                nonce: ccPriceList.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Create blob and download
+                    const blob = new Blob([response.data.content], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'price-list-example.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    alert('Failed to get example CSV');
+                }
+            },
+            error: function() {
+                alert('Failed to get example CSV');
+            }
+        });
+    });
 
     // Show/hide product form dialog
     $('#add-new-product').on('click', function(e) {
@@ -100,7 +135,9 @@ jQuery(document).ready(function($) {
                     alert('Failed to delete product: ' + response.data);
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                console.log('Response:', xhr.responseText);
                 alert('Failed to delete product. Please try again.');
             }
         });
@@ -112,27 +149,35 @@ jQuery(document).ready(function($) {
 
         const productData = {
             product_id: $('#product-id').val(),
-            category: $('#product-category').val(),
-            item: $('#product-item').val(),
+            category: $('#product-category').val() || '',
+            item: $('#product-item').val() || '',
             variations: []
         };
 
         // Collect variation data
         $('.variation-row').each(function() {
             const $row = $(this);
-            productData.variations.push({
+            const variationData = {
                 id: $row.find('[name="variation_id"]').val(),
-                size: $row.find('[name="size"]').val(),
-                price: parseFloat($row.find('[name="price"]').val()),
-                quantity_min: parseInt($row.find('[name="quantity_min"]').val()),
+                size: $row.find('[name="size"]').val() || null,
+                price: $row.find('[name="price"]').val() ? parseFloat($row.find('[name="price"]').val()) : 0,
+                quantity_min: $row.find('[name="quantity_min"]').val() ? parseInt($row.find('[name="quantity_min"]').val()) : 1,
                 quantity_max: $row.find('[name="quantity_max"]').val() 
                     ? parseInt($row.find('[name="quantity_max"]').val())
                     : null,
                 discount: $row.find('[name="discount"]').val()
                     ? parseFloat($row.find('[name="discount"]').val())
                     : null
-            });
+            };
+            
+            // Only add variations that have at least one field filled out
+            if (variationData.size || variationData.price || variationData.quantity_min || 
+                variationData.quantity_max || variationData.discount) {
+                productData.variations.push(variationData);
+            }
         });
+
+        console.log('Saving product data:', productData);
 
         $.ajax({
             url: ajaxurl,
@@ -144,13 +189,16 @@ jQuery(document).ready(function($) {
                 nonce: ccPriceList.nonce
             },
             success: function(response) {
+                console.log('Save response:', response);
                 if (response.success) {
                     location.reload();
                 } else {
                     alert('Failed to save product: ' + response.data);
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                console.log('Response:', xhr.responseText);
                 alert('Failed to save product. Please try again.');
             }
         });
@@ -187,4 +235,11 @@ jQuery(document).ready(function($) {
         $('#product-id').val('');
         $('.variations-list').empty();
     }
+
+    // Add initial empty variation row for new products
+    $('#add-new-product').on('click', function() {
+        if ($('.variations-list').is(':empty')) {
+            $('.add-variation').click();
+        }
+    });
 });

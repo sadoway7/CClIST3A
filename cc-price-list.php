@@ -5,6 +5,9 @@
  * Version: 1.0.0
  * Author: Ceramics Canada
  * Text Domain: cc-price-list
+ * GitHub Plugin URI: sadoway7/CClIST3A
+ * GitHub Plugin URI: https://github.com/sadoway7/CClIST3A
+ * Primary Branch: main
  */
 
 if (!defined('ABSPATH')) {

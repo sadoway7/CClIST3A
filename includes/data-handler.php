@@ -94,8 +94,8 @@ function cc_save_product($data) {
     try {
         // Insert or update product
         $product = [
-            'category' => sanitize_text_field($data['category']),
-            'item' => sanitize_text_field($data['item'])
+            'category' => isset($data['category']) ? sanitize_text_field($data['category']) : '',
+            'item' => isset($data['item']) ? sanitize_text_field($data['item']) : ''
         ];
         
         if (!empty($data['product_id'])) {
@@ -110,16 +110,20 @@ function cc_save_product($data) {
             $product_id = $wpdb->insert_id;
         }
         
+        if ($wpdb->last_error) {
+            throw new Exception($wpdb->last_error);
+        }
+        
         // Handle variations
-        if (!empty($data['variations'])) {
+        if (!empty($data['variations']) && is_array($data['variations'])) {
             foreach ($data['variations'] as $variation) {
                 $variation_data = [
                     'product_id' => $product_id,
-                    'size' => sanitize_text_field($variation['size']),
-                    'price' => (float) $variation['price'],
-                    'quantity_min' => (int) $variation['quantity_min'],
-                    'quantity_max' => !empty($variation['quantity_max']) ? (int) $variation['quantity_max'] : null,
-                    'discount' => !empty($variation['discount']) ? (float) $variation['discount'] : null
+                    'size' => isset($variation['size']) ? sanitize_text_field($variation['size']) : null,
+                    'price' => isset($variation['price']) ? (float) $variation['price'] : 0,
+                    'quantity_min' => isset($variation['quantity_min']) ? (int) $variation['quantity_min'] : 1,
+                    'quantity_max' => isset($variation['quantity_max']) ? (int) $variation['quantity_max'] : null,
+                    'discount' => isset($variation['discount']) ? (float) $variation['discount'] : null
                 ];
                 
                 if (!empty($variation['id'])) {
@@ -131,6 +135,10 @@ function cc_save_product($data) {
                 } else {
                     $wpdb->insert($variations_table, $variation_data);
                 }
+                
+                if ($wpdb->last_error) {
+                    throw new Exception($wpdb->last_error);
+                }
             }
         }
         
@@ -139,6 +147,7 @@ function cc_save_product($data) {
         
     } catch (Exception $e) {
         $wpdb->query('ROLLBACK');
+        error_log('CC Price List Error: ' . $e->getMessage());
         return new WP_Error('save_failed', $e->getMessage());
     }
 }
