@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Ceramics Canada Price List
  * Description: Manages product pricing with size variations and quantity breaks, exposed via REST API
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Ceramics Canada
  * Text Domain: cc-price-list
  * GitHub Plugin URI: sadoway7/CClIST3A
