@@ -37,18 +37,22 @@ class CC_Price_List_Activator {
             KEY category (category)
         ) $charset_collate;";
 
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-
-        // Set version in options
-        add_option('cc_price_list_version', CC_PRICE_LIST_VERSION);
-
         // Include and run migrations
         include_once( plugin_dir_path( __FILE__ ) . 'db_updates/update_01_add_prices_column.php');
         update_01_add_prices_column();
+        include_once( plugin_dir_path( __FILE__ ) . 'db_updates/update_02_add_discount_to_prices.php');
+        update_02_add_discount_to_prices();
+        include_once( plugin_dir_path( __FILE__ ) . 'db_updates/update_03_add_discount_column.php');
+        update_03_add_discount_column();
       
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+
+
         // Load dummy data (for development/testing purposes)
         require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/dummy-data.php';
         cc_price_list_load_dummy_data();
+          // Set version in options
+        add_option('cc_price_list_version', CC_PRICE_LIST_VERSION);
     }
 }
