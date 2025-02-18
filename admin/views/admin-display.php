@@ -12,7 +12,7 @@ if (!defined('WPINC')) {
 
 include_once CC_PRICE_LIST_PLUGIN_DIR . 'admin/components/tables/class-products-list-table.php';
 
-$products_table = new CC_Price_List_Products_Table();
+$products_table = new CC_Price_List_Products_Table($this->data_handler);
 $products_table->prepare_items();
 
 ?>
