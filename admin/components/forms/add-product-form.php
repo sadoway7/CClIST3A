@@ -19,7 +19,7 @@ if (!defined('WPINC')) {
         <?php wp_nonce_field('cc_price_list_add_product', 'cc_price_list_nonce'); ?>
         
         <div class="cc-price-list-form-wrapper">
-            <!-- Basic Product Information -->
+            
             <div class="form-section">
                 <h2>Basic Information</h2>
                 <table class="form-table">

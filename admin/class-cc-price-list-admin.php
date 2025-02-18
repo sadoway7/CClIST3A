@@ -73,6 +73,8 @@ class CC_Price_List_Admin {
             array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('cc_price_list_nonce'),
+                'add_nonce' => wp_create_nonce('cc_price_list_add_product'),
+                'edit_nonce' => wp_create_nonce('cc_price_list_edit_product'),
                 'adminUrl' => admin_url()
             )
         );

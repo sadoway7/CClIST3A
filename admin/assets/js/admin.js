@@ -204,17 +204,16 @@ jQuery(document).ready(function($) {
       e.preventDefault();
   
       const formData = $(this).serializeArray();
-      const productData = {
+     const productData = {
           action: 'add_product',
-          nonce: ccPriceList.nonce,
+          nonce: ccPriceList.add_nonce,
           prices: [] // Initialize prices array
       };
-  
       // Convert form data to object, excluding variation fields for now
       formData.forEach(field => {
-          if (!['size[]', 'quantity_min[]', 'quantity_max[]', 'price[]', 'discount[]'].includes(field.name)) {
-              productData[field.name] = field.value;
-          }
+        if (!['size[]', 'quantity_min[]', 'quantity_max[]', 'price[]', 'discount[]'].includes(field.name)) {
+          productData[field.name] = field.value;
+        }
       });
   
       // Collect Price Breaks
