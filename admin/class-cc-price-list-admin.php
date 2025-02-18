@@ -282,17 +282,17 @@ class CC_Price_List_Admin {
               for ($i = 0; $i < $count; $i++) {
                   if (!empty($data['quantity_min'][$i]) && !empty($data['price'][$i])) {
                       $prices[] = [
-                          'size' => $data['size'],
                           'quantity_min' => (int)$data['quantity_min'][$i],
                           'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
                           'price' => (float)$data['price'][$i],
+                         'discount' => isset($data['discount'][$i]) ? (float)$data['discount'][$i] : null,
                       ];
                   }
               }
           }
   
           $product_data = [
-              'category' => $data['category'],
+              'category'  => $data['category'],
               'item_name' => $data['item_name'],
               'size'  => $data['size'],
               'prices'    => $prices
@@ -332,10 +332,10 @@ class CC_Price_List_Admin {
               for ( $i=0; $i < $count; $i++ ) {
                 if ( !empty($data['quantity_min'][$i]) && !empty($data['price'][$i]) ) { // Ensure that we at least have a min quantity and a price
                     $prices[] = [
-                        'size' => $data['size'],
                         'quantity_min' => (int)$data['quantity_min'][$i],
                         'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
-                        'price' => (float)$data['price'][$i]
+                        'price' => (float)$data['price'][$i],
+                     'discount' => isset($data['discount'][$i]) ? (float)$data['discount'][$i] : null,
                     ];
                 }
               }
