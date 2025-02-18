@@ -10,7 +10,7 @@
  * Plugin Name: CC Price List
  * Plugin URI:  https://example.com/cc-price-list
  * Description: Manages product pricing with grouping support and REST API integration
- * Version:     1.0.11
+ * Version:     1.0.12
  * Author:      Your Name
  * Author URI:  https://example.com
  * Text Domain: cc-price-list
@@ -34,9 +34,12 @@ define('CC_PRICE_LIST_PLUGIN_URL', plugin_dir_url(__FILE__));
 /**
  * The code that runs during plugin activation.
  */
+require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/db_updates/update_01_add_prices_column.php';
+require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/db_updates/update_03_add_discount_column.php';
+require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/db_updates/update_02_add_discount_to_prices.php';
 function activate_cc_price_list() {
-    require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/class-cc-price-list-activator.php';
-    CC_Price_List_Activator::activate();
+ require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/class-cc-price-list-activator.php';
+ CC_Price_List_Activator::activate();
 }
 
 /**

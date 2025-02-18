@@ -46,5 +46,9 @@ class CC_Price_List_Activator {
         // Include and run migrations
         include_once( plugin_dir_path( __FILE__ ) . 'db_updates/update_01_add_prices_column.php');
         update_01_add_prices_column();
+      
+        // Load dummy data (for development/testing purposes)
+        require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/dummy-data.php';
+        cc_price_list_load_dummy_data();
     }
 }
