@@ -22,9 +22,7 @@ class CC_Price_List_Products_Table extends WP_List_Table {
             'cb'          => '<input type="checkbox" />',
             'item_name'   => __('Item Name', 'cc-price-list'),
             'category'    => __('Category', 'cc-price-list'),
-            'size'        => __('Size', 'cc-price-list'),
-            'price'       => __('Price', 'cc-price-list'),
-            'quantity'    => __('Quantity', 'cc-price-list'),
+            'price'       => __('Price/Size/Quantity', 'cc-price-list'),
             'actions'     => __('Actions', 'cc-price-list')
         );
         return $columns;
@@ -34,38 +32,28 @@ class CC_Price_List_Products_Table extends WP_List_Table {
         $sortable_columns = array(
             'item_name'  => array('item_name', true),
             'category'   => array('category', false),
-            'size'       => array('size', false),
-            //'price'      => array('price', false) //No sorting by price with new structure
+           // 'size'       => array('size', false), //Removed as per combined column
+           // 'price'      => array('price', false)  //Removed as per combined column
         );
         return $sortable_columns;
     }
 
     protected function column_default($item, $column_name) {
-      switch ($column_name) {
-          case 'item_name':
-          case 'category':
-          case 'size':
-              return esc_html($item[$column_name]);
-          case 'price':
-              return $this->format_price_display($item);
-          case 'quantity':
-                if (isset($item['prices']) && is_array($item['prices'])) {
-                    $quantity_display = '';
-                    foreach ($item['prices'] as $price_break) {
-                    $quantity_display .= sprintf(
-                        '<div class="quantity-break">%s</div>',
-                        $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max'])
-                    );
-                    }
-                    return $quantity_display;
-                }
-                return '';
-          case 'actions':
-              return $this->get_row_actions($item);
-          default:
-              return print_r($item, true);
-      }
-  }
+        switch ($column_name) {
+            case 'item_name':
+            case 'category':
+            //case 'size': //Removed as per combined column
+                return esc_html($item[$column_name]);
+            case 'price': //Now handles all variation output
+                return $this->format_price_display($item);
+           // case 'quantity': //Removed as per combined column
+           //     return $this->format_quantity_display($item);
+            case 'actions':
+                return $this->get_row_actions($item);
+            default:
+                return print_r($item, true); //Show all the item info for debug purposes
+        }
+    }
 
     protected function column_cb($item) {
         return sprintf(
@@ -75,20 +63,25 @@ class CC_Price_List_Products_Table extends WP_List_Table {
     }
 
   protected function format_price_display($item) {
-      if (isset($item['prices']) && is_array($item['prices'])) {
-          $price_display = '';
-          foreach ($item['prices'] as $price_break) {
-              $price_display .= sprintf(
-                  '<div class="price-break">%s: $%.2f</div>',
-                  $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max']),
-                  $price_break['price']
-              );
-          }
-          return $price_display;
-      }
-      return '';
-  }
+    if (isset($item['prices']) && is_array($item['prices'])) {
+        $price_display = '';
+        $size = esc_html($item['size']);
+        
+        if ($size) {
+            $price_display .="<strong>Size: {$size}</strong><br>";
+        }
 
+        foreach ($item['prices'] as $price_break) {
+            $price_display .= sprintf(
+                '<div class="price-break">%s: $%.2f</div>',
+                $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max']),
+                $price_break['price']
+            );
+        }
+        return $price_display;
+      }
+    return '';
+  }
     
 
     protected function format_quantity_range($min, $max) {
@@ -240,10 +233,13 @@ class CC_Price_List_Products_Table extends WP_List_Table {
             </td>
             <td class="column-item_name"><?php echo esc_html($item['item_name']); ?></td>
             <td class="column-category"><?php echo esc_html($item['category']); ?></td>
-            <td class="column-size size-highlight"><?php echo esc_html($item['size']); ?></td>
             <td class="column-price">
                 <?php 
                 if (isset($item['prices'])) {
+                    $size = esc_html($item['size']);
+                    if($size){
+                      echo "<strong>Size: {$size}</strong><br>";
+                    }
                     foreach ($item['prices'] as $price_break) {
                         printf(
                             '<div class="price-break">%s: $%.2f</div>',
@@ -254,16 +250,7 @@ class CC_Price_List_Products_Table extends WP_List_Table {
                 }
                 ?>
             </td>
-            <td class="column-quantity">
-                <?php
-                if(isset($item['prices']) && is_array($item['prices'])){
-                     foreach ($item['prices'] as $price_break) {
-                        echo $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max'])."<br>";
-                     }
-                }
-                
-                ?>
-            </td>
+            
             <td class="column-actions">
                 <?php
                 $actions = array(

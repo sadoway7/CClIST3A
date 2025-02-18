@@ -89,7 +89,7 @@ $prices = isset($product['prices']) ? $product['prices'] : [];
 
                     <!-- Active variations will be inserted here -->
                     <div id="active-variations">
-                      <?php if(is_array($prices)): foreach ($prices as $price_break): ?>
+                        <?php if(is_array($prices)): foreach ($prices as $price_break): ?>
                             <!-- Quantity break variations -->
                            
                                 <div class="variation-row">

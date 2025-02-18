@@ -23,7 +23,7 @@ jQuery(document).ready(function($) {
     // Edit product form elements
     const editProductForm = $('#cc-price-list-product-form');
 
-    const variationTypeSelector = $('input[name="variation_type"]');
+    
     const variationsContainer = $('#variations-container');
     const activeVariationsContainer = $('#active-variations');
     
@@ -33,7 +33,8 @@ jQuery(document).ready(function($) {
     const exportForm = $('#export-form');
     const exportSubmit = $('#export_submit');
 
-    // Templates   
+    // Templates
+    
     const quantityBreakTemplate = $('.variation-template.quantity-break').html();
 
     // State
@@ -199,61 +200,62 @@ jQuery(document).ready(function($) {
      * Handle add product form submission
      * @param {Event} e 
      */
-    function handleAddProduct(e) {
-        e.preventDefault();
-    
-        const formData = $(this).serializeArray();
-        const productData = {
-            action: 'add_product',
-            nonce: ccPriceList.nonce,
-            prices: [] // Initialize prices array
-        };
-    
-        // Convert form data to object, excluding variation fields for now
-        formData.forEach(field => {
-            if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
-                productData[field.name] = field.value;
-            }
-        });
-    
-        // Collect Price Breaks
-        $('.variation-row', activeVariationsContainer).each(function() {
-            const min = $('input[name="quantity_min[]"]', this).val();
-            const max = $('input[name="quantity_max[]"]', this).val();
-            const price = $('input[name="price[]"]', this).val();
-    
-            // Ensure that we at least have a min quantity and a price
-            if (min !== '' && price !== '') {
-                productData.prices.push({
-                    quantity_min: min,
-                    quantity_max: max !== '' ? max : null, // Allow for open-ended ranges
-                    price: price
-                });
-            }
-        });
-    
-        // Send the data
-        $.ajax({
-            url: ccPriceList.ajaxUrl,
-            method: 'POST',
-            data: productData,
-            success: function(response) {
-                if (response.success) {
-                    showSuccess(response.data.message);
-                    addProductForm[0].reset();
-                    activeVariationsContainer.html('');
-                    setTimeout(() => {
-                        window.location.href = ccPriceList.adminUrl + '?page=cc-price-list';
-                    }, 1500);
-                } else {
-                    showFormError(response.data.message);
-                }
-            },
-            error: function() {
-                showFormError('Failed to add product. Please try again.');
-            }
-        });
-    }
+     function handleAddProduct(e) {
+      e.preventDefault();
+  
+      const formData = $(this).serializeArray();
+      const productData = {
+          action: 'add_product',
+          nonce: ccPriceList.nonce,
+          prices: [] // Initialize prices array
+      };
+  
+      // Convert form data to object, excluding variation fields for now
+      formData.forEach(field => {
+          if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
+              productData[field.name] = field.value;
+          }
+      });
+  
+      // Collect Price Breaks
+      $('.variation-row', activeVariationsContainer).each(function() {
+          const min = $('input[name="quantity_min[]"]', this).val();
+          const max = $('input[name="quantity_max[]"]', this).val();
+          const price = $('input[name="price[]"]', this).val();
+          console.log(min);
+  
+          // Ensure that we at least have a min quantity and a price
+          if (min !== '' && price !== '') {
+              productData.prices.push({
+                  quantity_min: min,
+                  quantity_max: max !== '' ? max : null, // Allow for open-ended ranges
+                  price: price
+              });
+          }
+      });
+  
+      // Send the data
+      $.ajax({
+          url: ccPriceList.ajaxUrl,
+          method: 'POST',
+          data: productData,
+          success: function(response) {
+              if (response.success) {
+                  showSuccess(response.data.message);
+                  addProductForm[0].reset();
+                  activeVariationsContainer.html('');
+                  setTimeout(() => {
+                      window.location.href = ccPriceList.adminUrl + '?page=cc-price-list';
+                  }, 1500);
+              } else {
+                  showFormError(response.data.message);
+              }
+          },
+          error: function() {
+              showFormError('Failed to add product. Please try again.');
+          }
+      });
+  }
 
     /**
     * Handle edit product form submission
@@ -310,6 +312,7 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
    
     /**
      * Add variation row

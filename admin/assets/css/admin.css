@@ -57,6 +57,7 @@
     vertical-align: middle;
 }
 
+/* We don't need to set column widths anymore, it wraps nicely
 .wp-list-table .column-price {
     width: 200px;
 }
@@ -69,6 +70,7 @@
     width: 100px;
     text-align: right;
 }
+*/
 
 /* Product Groups */
 .product-group {
@@ -141,6 +143,7 @@
     margin: 2px 0;
 }
 
+/*No longer needed with combined column
 .column-price .price-break {
     display: block;
     margin-bottom: 4px;
@@ -149,6 +152,7 @@
 .column-price .price-break:last-child {
     margin-bottom: 0;
 }
+*/
 
 /* Product Variations */
 .variation-list {
@@ -243,13 +247,13 @@
     .price-breaks {
         flex-direction: column;
     }
-
+/* No longer needed.
     .wp-list-table .column-price,
     .wp-list-table .column-quantity,
     .wp-list-table .column-actions {
         width: auto;
     }
-
+*/
     .row-actions {
         visibility: visible;
     }
