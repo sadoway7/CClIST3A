@@ -341,68 +341,88 @@ class CC_Price_List_Data_Handler {
           $prices_data = $data['prices'];
        }
        
+       // Extract discount from variations. Only the first variation's discount will be stored at product level
+        $discount = null;
+        if(isset($data['prices']) && is_array($data['prices']) && !empty($data['prices'])){
+            if(isset($data['prices'][0]['discount'])){
+                $discount = $data['prices'][0]['discount'] ? (float) $data['prices'][0]['discount'] : null;
+            }
+        }
+
        return $wpdb->insert(
         $this->table_name,
         array(
             'category' => sanitize_text_field($data['category']),
             'item_name' => sanitize_text_field($data['item_name']),
             'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
-            'prices' =>  serialize($prices_data) 
+            'prices' =>  serialize($prices_data),
+            'discount' => $discount
         ),
         array(
             '%s', // category
             '%s', // item_name
             '%s', // size
-            '%s'  // prices
+            '%s',  // prices
+            '%s' //discount
         )
     );
-       
-       
+
+
    }
 
-    /**
-     * Update a product
-     *
-     * @param int   $id   Product ID
-     * @param array $data Product data
-     * @return int|false The number of rows updated, or false on error
-     */
-    public function update_product($id, $data) {
-        global $wpdb;
-      
-        $defaults = array(
-           'category' => '',
-           'item_name' => '',
-           'size' => null,
-           'prices' => null
-       );
+/**
+ * Update a product. Updates the main product fields and all variation fields.
+ *
+ * @param int   $id   Product ID.
+ * @param array $data Product data.
+ * @return int|false The number of rows updated, or false on error.
+ */
+public function update_product($id, $data) {
+    global $wpdb;
 
-       $data = wp_parse_args($data, $defaults);
-       // Prepare the 'prices' data
-       $prices_data = [];
-      
-       if (is_array($data['prices'])) {
-          $prices_data = $data['prices'];
+    $defaults = array(
+        'category' => '',
+        'item_name' => '',
+        'size' => null,
+        'prices' => null
+    );
+
+    $data = wp_parse_args($data, $defaults);
+
+    // Extract discount from variations. Only the first variation's discount will be stored
+    $discount = null;
+    if (isset($data['prices']) && is_array($data['prices']) && !empty($data['prices'])) {
+       if (isset($data['prices'][0]['discount'])) {
+         $discount = $data['prices'][0]['discount'] ? (float)$data['prices'][0]['discount'] : null;
        }
-
-        return $wpdb->update(
-            $this->table_name,
-            array(
-                'category' => sanitize_text_field($data['category']),
-                'item_name' => sanitize_text_field($data['item_name']),
-                'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
-                'prices' =>  serialize($prices_data)
-            ),
-            array('id' => $id),
-            array(
-                '%s', // category
-                '%s', // item_name
-                '%s', // size
-                '%s'  // prices
-            ),
-            array('%d') // id format
-        );
     }
+
+    // Prepare the 'prices' data
+    $prices_data = [];
+    if (is_array($data['prices'])) {
+        $prices_data = $data['prices'];
+    }
+
+    return $wpdb->update(
+        $this->table_name,
+        array(
+            'category' => sanitize_text_field($data['category']),
+            'item_name' => sanitize_text_field($data['item_name']),
+            'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
+            'prices' => serialize($prices_data),
+            'discount' => $discount
+        ),
+        array('id' => $id),
+        array(
+            '%s', // category
+            '%s', // item_name
+            '%s', // size
+            '%s', // prices
+            '%s' //discount
+        ),
+        array('%d') // id format
+    );
+}
 
     /**
      * Delete a product

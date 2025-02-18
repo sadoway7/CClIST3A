@@ -10,7 +10,7 @@
  * Plugin Name: CC Price List
  * Plugin URI:  https://example.com/cc-price-list
  * Description: Manages product pricing with grouping support and REST API integration
- * Version:     1.0.10
+ * Version:     1.0.11
  * Author:      Your Name
  * Author URI:  https://example.com
  * Text Domain: cc-price-list

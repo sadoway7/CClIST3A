@@ -280,10 +280,14 @@ class CC_Price_List_Admin {
           $prices = [];
           if (!empty($data['quantity_min']) && is_array($data['quantity_min'])) {
               $count = count($data['quantity_min']);
-  
+                $size = $data['size'] ?? null;
               for ($i = 0; $i < $count; $i++) {
                   if (!empty($data['quantity_min'][$i]) && !empty($data['price'][$i])) {
+                        // Use $size[i] if $data['size'] is an array, otherwise use $size
+                        $current_size = is_array($size) ? ($size[$i] ?? null) : $size;
+
                       $prices[] = [
+                            'size' => $current_size,
                           'quantity_min' => (int)$data['quantity_min'][$i],
                           'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
                           'price' => (float)$data['price'][$i],
@@ -292,11 +296,10 @@ class CC_Price_List_Admin {
                   }
               }
           }
-  
+            
           $product_data = [
               'category'  => $data['category'],
               'item_name' => $data['item_name'],
-              'size'  => $data['size'],
               'prices'    => $prices
           ];
   
@@ -330,26 +333,28 @@ class CC_Price_List_Admin {
         $prices = array();
            if ( !empty($data['quantity_min']) && is_array($data['quantity_min']) ) {
               $count = count($data['quantity_min']);
-    
+                $size = $data['size'] ?? null;
               for ( $i=0; $i < $count; $i++ ) {
-                if ( !empty($data['quantity_min'][$i]) && !empty($data['price'][$i]) ) { // Ensure that we at least have a min quantity and a price
-                    $prices[] = [
-                        'quantity_min' => (int)$data['quantity_min'][$i],
-                        'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
-                        'price' => (float)$data['price'][$i],
-                     'discount' => isset($data['discount'][$i]) ? (float)$data['discount'][$i] : null,
-                    ];
-                }
+                  if ( !empty($data['quantity_min'][$i]) && !empty($data['price'][$i]) ) { // Ensure that we at least have a min quantity and a price
+                       // Use $size[i] if $data['size'] is an array, otherwise use $size
+                        $current_size = is_array($size) ? ($size[$i] ?? null) : $size;
+                      $prices[] = [
+                            'size' => $current_size,
+                          'quantity_min' => (int)$data['quantity_min'][$i],
+                          'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
+                          'price' => (float)$data['price'][$i],
+                       'discount' => isset($data['discount'][$i]) ? (float)$data['discount'][$i] : null,
+                      ];
+                  }
               }
-            }
+          }
 
-        // Prepare the product data
-        $product_data = [
-            'category'  => $data['category'],
-            'item_name' => $data['item_name'],
-            'size'      => $data['size'],
-            'prices'       => $prices
-        ];
+          // Prepare the product data
+          $product_data = [
+              'category'  => $data['category'],
+              'item_name' => $data['item_name'],
+              'prices'       => $prices
+          ];
 
         // Update product using data handler
         $result = $this->data_handler->update_product($product_id, $product_data);

@@ -31,7 +31,7 @@ $products_table->prepare_items();
                 <select id="filter_category">
                     <option value="">All Categories</option>
                     <?php
-                    $categories = $products_table->data_handler->get_categories();
+                    $categories = $this->data_handler->get_categories();
                     foreach ($categories as $category) {
                         $selected = (isset($_GET['category']) && $_GET['category'] == $category) ? 'selected="selected"' : '';
                         echo '<option value="' . esc_attr($category) . '" ' . $selected . '>' . esc_html($category) . '</option>';
