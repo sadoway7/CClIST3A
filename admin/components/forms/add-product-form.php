@@ -41,35 +41,27 @@ if (!defined('WPINC')) {
                             <p class="description">The name of the product</p>
                         </td>
                     </tr>
+                     <tr>
+                        <th scope="row">
+                            <label for="item_name">Size</label>
+                        </th>
+                        <td>
+                            <input type="text" id="size" name="size" class="regular-text">
+                            <p class="description">Leave blank for no size variation</p>
+                        </td>
+                    </tr>
                 </table>
             </div>
 
             <!-- Product Variations -->
             <div class="form-section" id="variations-section">
-                <h2>Product Variations</h2>
-                <div class="variation-type-selector">
-                    <label>
-                        <input type="radio" name="variation_type" value="size" checked>
-                        Size Variations
-                    </label>
-                    <label>
-                        <input type="radio" name="variation_type" value="quantity">
-                        Quantity Price Breaks
-                    </label>
-                </div>
+                <h2>Price Breaks</h2>
+                
 
                 <div id="variations-container">
-                    <!-- Template for size variation -->
-                    <div class="variation-template size-variation" style="display: none;">
-                        <div class="variation-row">
-                            <input type="text" name="size[]" placeholder="Size (e.g., 500g, 1kg)" class="medium-text">
-                            <input type="number" name="price[]" placeholder="Price" class="small-text" step="0.01">
-                            <button type="button" class="button remove-variation">Remove</button>
-                        </div>
-                    </div>
-
+                  
                     <!-- Template for quantity break -->
-                    <div class="variation-template quantity-break" style="display: none;">
+                    <div class="variation-template quantity-break">
                         <div class="variation-row">
                             <input type="number" name="quantity_min[]" placeholder="Min Quantity" class="small-text">
                             <input type="number" name="quantity_max[]" placeholder="Max Quantity" class="small-text">
@@ -81,7 +73,7 @@ if (!defined('WPINC')) {
                     <!-- Active variations will be inserted here -->
                     <div id="active-variations"></div>
 
-                    <button type="button" class="button add-variation">Add Variation</button>
+                    <button type="button" class="button add-variation">Add Price Break</button>
                 </div>
             </div>
 

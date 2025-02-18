@@ -139,6 +139,7 @@ class CC_Price_List_Admin {
      * Render the add new product page.
      */
     public function display_add_new_page() {
+        
         include_once 'components/forms/add-product-form.php';
     }
     
@@ -256,72 +257,50 @@ class CC_Price_List_Admin {
      /**
      * AJAX handler to add a product
      */
-    public function ajax_add_product() {
-        check_ajax_referer( 'cc_price_list_add_product', 'nonce' );
-
-        $data = $_POST;
-    
-        // Basic validation
-        if ( empty( $data['category'] ) || empty( $data['item_name'] ) ) {
-            wp_send_json_error( array( 'message' => 'Category and Item Name are required.' ) );
-        }
-
-        // Process variations based on variation type
-        $variations = array();
-        if ($data['variation_type'] === 'size') {
-            $sizes = $data['size'];
-            $prices = $data['price'];
-
-            // Ensure we have the same number of sizes and prices.
-            if(count($sizes) !== count($prices)){
-                wp_send_json_error(array('message' => 'Sizes and prices do not match!'));
-            }
-            for($i = 0; $i<count($sizes); $i++){
-                if(!empty($sizes[$i]) && !empty($prices[$i])){
-                    $variations[] = array(
-                        'size' => $sizes[$i],
-                        'price' => $prices[$i],
-                        'quantity_min' => 1, // Default value
-                        'quantity_max' => null, // Default value
-                        'discount' => null //Default value
-                    );
-                }
-            }
-        } else if ($data['variation_type'] === 'quantity') {
-            $min_quantities = $data['quantity_min'];
-            $max_quantities = $data['quantity_max'];
-            $prices = $data['price'];
-             if(count($min_quantities) !== count($max_quantities) || count($min_quantities) !== count($prices)){
-                wp_send_json_error(array('message' => 'Quantity breaks and prices do not match'));
-             }
-
-            for($i = 0; $i<count($min_quantities); $i++){
-                if(!empty($min_quantities[$i]) && !empty($prices[$i])){
-                    $variations[] = array(
-                        'size' => null, // Default for quantity breaks
-                        'price' => $prices[$i],
-                        'quantity_min' => $min_quantities[$i],
-                        'quantity_max' => $max_quantities[$i],
-                        'discount' => null
-                    );
-                }
-            }
-        }
-            
-        
-
-        // Add each variation as individual product
-        foreach($variations as $variation){
-            $result = $this->data_handler->add_product(array_merge(array(
-                'category' => $data['category'],
-                'item_name' => $data['item_name']
-            ), $variation));
-            if ( ! $result ) {
-	            wp_send_json_error( array( 'message' => 'Failed to add product variation.' ) );
-            }
-        }
-        wp_send_json_success( array( 'message' => 'Product added successfully!' ) );
-    }
+      public function ajax_add_product()
+      {
+          check_ajax_referer('cc_price_list_add_product', 'nonce');
+  
+          $data = $_POST;
+          // error_log(print_r($data, true));
+  
+          // Basic validation
+          if (empty($data['category']) || empty($data['item_name'])) {
+              wp_send_json_error(array('message' => 'Category and Item Name are required.'));
+          }
+  
+          // Process Price Breaks
+          $prices = [];
+          if (!empty($data['quantity_min']) && is_array($data['quantity_min'])) {
+              $count = count($data['quantity_min']);
+  
+              for ($i = 0; $i < $count; $i++) {
+                  if (!empty($data['quantity_min'][$i]) && !empty($data['price'][$i])) {
+                      $prices[] = [
+                          'quantity_min' => (int)$data['quantity_min'][$i],
+                          'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
+                          'price' => (float)$data['price'][$i]
+                      ];
+                  }
+              }
+          }
+  
+          $product_data = [
+              'category' => $data['category'],
+              'item_name' => $data['item_name'],
+              'size'  => $data['size'],
+              'prices'    => $prices
+          ];
+  
+          // Add the product using the data handler
+          $result = $this->data_handler->add_product($product_data);
+  
+          if ($result) {
+              wp_send_json_success(array('message' => 'Product added successfully!'));
+          } else {
+              wp_send_json_error(array('message' => 'Failed to add product.'));
+          }
+      }
     
     /**
     * AJAX handler for editing products
@@ -333,74 +312,44 @@ class CC_Price_List_Admin {
         if ( ! $product_id ) {
             wp_send_json_error( array( 'message' => 'Invalid product ID.' ) );
         }
-        
+      
         $data = $_POST;
+        if ( empty( $data['category'] ) || empty( $data['item_name'] ) ) {
+            wp_send_json_error( array( 'message' => 'Category and Item Name are required.' ) );
+        }
 
         // Process variations based on variation type
-        $variations = array();
-        if ( isset($data['variation_type']) && $data['variation_type'] === 'size') {
-            $sizes = isset($data['size']) ? $data['size'] : [];
-            $prices = isset($data['price']) ? $data['price'] : [];
-            // Ensure we have the same number of sizes and prices.
-            if(count($sizes) !== count($prices)){
-                wp_send_json_error(array('message' => 'Sizes and prices do not match!'));
-            }
-            for($i = 0; $i<count($sizes); $i++){
-                if(!empty($sizes[$i]) && !empty($prices[$i])){
-                    $variations[] = array(
-                        'size' => $sizes[$i],
-                        'price' => $prices[$i],
-                        'quantity_min' => 1, // Default value
-                        'quantity_max' => null, // Default value
-                        'discount' => null //Default value
-                    );
+        $prices = array();
+           if ( !empty($data['quantity_min']) && is_array($data['quantity_min']) ) {
+              $count = count($data['quantity_min']);
+    
+              for ( $i=0; $i < $count; $i++ ) {
+                if ( !empty($data['quantity_min'][$i]) && !empty($data['price'][$i]) ) { // Ensure that we at least have a min quantity and a price
+                    $prices[] = [
+                        'quantity_min' => (int)$data['quantity_min'][$i],
+                        'quantity_max' => isset($data['quantity_max'][$i]) ? (int)$data['quantity_max'][$i] : null,
+                        'price' => (float)$data['price'][$i],
+                    ];
                 }
+              }
             }
-        } else if (isset($data['variation_type']) && $data['variation_type'] === 'quantity') {
-            $min_quantities = isset($data['quantity_min']) ? $data['quantity_min'] : [];
-            $max_quantities = isset($data['quantity_max']) ? $data['quantity_max'] : [];
-            $prices = isset($data['price']) ? $data['price'] : [];
 
-             if(count($min_quantities) !== count($max_quantities) || count($min_quantities) !== count($prices)){
-                wp_send_json_error(array('message' => 'Quantity breaks and prices do not match'));
-             }
+        // Prepare the product data
+        $product_data = [
+            'category'  => $data['category'],
+            'item_name' => $data['item_name'],
+            'size'      => $data['size'],
+            'prices'       => $prices
+        ];
 
-            for($i = 0; $i<count($min_quantities); $i++){
-                if(!empty($min_quantities[$i]) && !empty($prices[$i])){
-                    $variations[] = array(
-                        'size' => null, // Default for quantity breaks
-                        'price' => $prices[$i],
-                        'quantity_min' => $min_quantities[$i],
-                        'quantity_max' => $max_quantities[$i],
-                        'discount' => null
-                    );
-                }
-            }
+        // Update product using data handler
+        $result = $this->data_handler->update_product($product_id, $product_data);
+
+        if ( $result ) {
+            wp_send_json_success( array( 'message' => 'Product updated successfully!' ) );
+        } else {
+            wp_send_json_error( array( 'message' => 'Failed to update product.' ) );
         }
-
-        
-
-        // Update logic: Delete existing variations and re-add
-        // First delete all current variations for this item_name
-        $existing_product = $this->data_handler->get_product($product_id);
-        if (!$existing_product) {
-             wp_send_json_error( array( 'message' => 'Failed to edit product. Product to edit not found.' ) );
-        }
-
-        $this->data_handler->delete_group($existing_product['item_name']);
-
-        // Add each variation as individual product
-        foreach($variations as $variation){
-            $result = $this->data_handler->add_product(array_merge(array(
-                'category' => $data['category'],
-                'item_name' => $data['item_name']
-            ), $variation));
-            if ( ! $result ) {
-                wp_send_json_error( array( 'message' => 'Failed to add product variation.' ) );
-            }
-        }
-
-        wp_send_json_success( array( 'message' => 'Product updated successfully!' ) );
     }
 
     /**

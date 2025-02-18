@@ -35,27 +35,37 @@ class CC_Price_List_Products_Table extends WP_List_Table {
             'item_name'  => array('item_name', true),
             'category'   => array('category', false),
             'size'       => array('size', false),
-            'price'      => array('price', false)
+            //'price'      => array('price', false) //No sorting by price with new structure
         );
         return $sortable_columns;
     }
 
     protected function column_default($item, $column_name) {
-        switch ($column_name) {
-            case 'item_name':
-            case 'category':
-            case 'size':
-                return esc_html($item[$column_name]);
-            case 'price':
-                return $this->format_price_display($item);
-            case 'quantity':
-                return $this->format_quantity_display($item);
-            case 'actions':
-                return $this->get_row_actions($item);
-            default:
-                return print_r($item, true);
-        }
-    }
+      switch ($column_name) {
+          case 'item_name':
+          case 'category':
+          case 'size':
+              return esc_html($item[$column_name]);
+          case 'price':
+              return $this->format_price_display($item);
+          case 'quantity':
+                if (isset($item['prices']) && is_array($item['prices'])) {
+                    $quantity_display = '';
+                    foreach ($item['prices'] as $price_break) {
+                    $quantity_display .= sprintf(
+                        '<div class="quantity-break">%s</div>',
+                        $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max'])
+                    );
+                    }
+                    return $quantity_display;
+                }
+                return '';
+          case 'actions':
+              return $this->get_row_actions($item);
+          default:
+              return print_r($item, true);
+      }
+  }
 
     protected function column_cb($item) {
         return sprintf(
@@ -64,27 +74,22 @@ class CC_Price_List_Products_Table extends WP_List_Table {
         );
     }
 
-    protected function format_price_display($item) {
-        if (isset($item['prices']) && is_array($item['prices'])) {
-            $price_display = '';
-            foreach ($item['prices'] as $price_break) {
-                $price_display .= sprintf(
-                    '<div class="price-break">%s: $%.2f</div>',
-                    $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max']),
-                    $price_break['price']
-                );
-            }
-            return $price_display;
-        }
-        return sprintf('$%.2f', $item['price']);
-    }
+  protected function format_price_display($item) {
+      if (isset($item['prices']) && is_array($item['prices'])) {
+          $price_display = '';
+          foreach ($item['prices'] as $price_break) {
+              $price_display .= sprintf(
+                  '<div class="price-break">%s: $%.2f</div>',
+                  $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max']),
+                  $price_break['price']
+              );
+          }
+          return $price_display;
+      }
+      return '';
+  }
 
-    protected function format_quantity_display($item) {
-        if (isset($item['quantity_min'])) {
-            return $this->format_quantity_range($item['quantity_min'], $item['quantity_max']);
-        }
-        return '';
-    }
+    
 
     protected function format_quantity_range($min, $max) {
         if ($max) {
@@ -175,104 +180,101 @@ class CC_Price_List_Products_Table extends WP_List_Table {
     }
 
     private function group_items($items) {
-        $grouped = array();
-        $current_group = null;
-        
-        foreach ($items as $item) {
-            if ($current_group === null || $current_group['item_name'] !== $item['item_name']) {
-                if ($current_group !== null) {
-                    $grouped[] = $current_group;
-                }
-                $current_group = array(
-                    'id' => $item['id'],
-                    'item_name' => $item['item_name'],
-                    'category' => $item['category'],
-                    'variations' => array()
-                );
+      $grouped = array();
+
+      foreach ($items as $item) {
+          $item_name = $item['item_name'];
+          
+          // Initialize group if it doesn't exist
+          if (!isset($grouped[$item_name])) {
+              $grouped[$item_name] = array(
+                  'item_name' => $item_name,
+                  'category' => $item['category'],
+                  'variations' => array(),
+              );
+          }
+  
+          // Add the variation to the group
+          $grouped[$item_name]['variations'][] = array(
+              'id'     => $item['id'],
+              'size'   => $item['size'],
+              'prices' => $item['prices'],
+              
+          );
+      }
+      
+      // Flatten the grouped array to match the table structure
+        $flat_array = [];
+
+        foreach ($grouped as $group) {
+            $base_info = [
+              'id' => '',
+              'item_name'   => $group['item_name'],
+              'category'    => $group['category']
+            ];
+            foreach($group['variations'] as $variation){
+              $new_item = $base_info;
+              $new_item['id'] = $variation['id'];
+              $new_item = array_merge($new_item, $variation);
+              $flat_array[] = $new_item;
             }
-            
-            $current_group['variations'][] = array(
-                'id' => $item['id'],
-                'size' => $item['size'],
-                'price' => $item['price'],
-                'quantity_min' => $item['quantity_min'],
-                'quantity_max' => $item['quantity_max'],
-                'prices' => isset($item['prices']) ? $item['prices'] : null
-            );
         }
-        
-        if ($current_group !== null) {
-            $grouped[] = $current_group;
-        }
-        
-        return $grouped;
+      return $flat_array;
     }
 
     public function display_rows() {
         $records = $this->items;
         
-        foreach ($records as $group) {
-            $this->display_group_row($group);
+        foreach ($records as $item) {
+            $this->display_single_row($item);
         }
     }
 
-    private function display_group_row($group) {
-        $class = 'group-row';
-        ?>
-        <tr class="<?php echo esc_attr($class); ?>" data-group-id="<?php echo esc_attr($group['id']); ?>">
-            <td colspan="<?php echo count($this->get_columns()); ?>">
-                <div class="group-header">
-                    <span class="toggle-group dashicons dashicons-arrow-down"></span>
-                    <strong><?php echo esc_html($group['item_name']); ?></strong>
-                    <span class="group-category"><?php echo esc_html($group['category']); ?></span>
-                </div>
-            </td>
-        </tr>
-        <?php
-        foreach ($group['variations'] as $variation) {
-            $this->display_variation_row($variation, $group['item_name'], $group['category']);
-        }
-    }
-
-    private function display_variation_row($variation, $item_name, $category) {
+    private function display_single_row($item) {
+      
         $class = 'variation-row';
         ?>
-        <tr class="<?php echo esc_attr($class); ?>" data-variation-id="<?php echo esc_attr($variation['id']); ?>">
+        <tr class="<?php echo esc_attr($class); ?>" data-variation-id="<?php echo esc_attr($item['id']); ?>">
             <td class="column-cb">
-                <input type="checkbox" name="products[]" value="<?php echo esc_attr($variation['id']); ?>" />
+                <input type="checkbox" name="products[]" value="<?php echo esc_attr($item['id']); ?>" />
             </td>
-            <td class="column-item_name"><?php echo esc_html($item_name); ?></td>
-            <td class="column-category"><?php echo esc_html($category); ?></td>
-            <td class="column-size size-highlight"><?php echo esc_html($variation['size']); ?></td>
+            <td class="column-item_name"><?php echo esc_html($item['item_name']); ?></td>
+            <td class="column-category"><?php echo esc_html($item['category']); ?></td>
+            <td class="column-size size-highlight"><?php echo esc_html($item['size']); ?></td>
             <td class="column-price">
                 <?php 
-                if (isset($variation['prices'])) {
-                    foreach ($variation['prices'] as $price_break) {
+                if (isset($item['prices'])) {
+                    foreach ($item['prices'] as $price_break) {
                         printf(
                             '<div class="price-break">%s: $%.2f</div>',
                             $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max']),
                             $price_break['price']
                         );
                     }
-                } else {
-                    printf('$%.2f', $variation['price']);
                 }
                 ?>
             </td>
             <td class="column-quantity">
-                <?php echo $this->format_quantity_range($variation['quantity_min'], $variation['quantity_max']); ?>
+                <?php
+                if(isset($item['prices']) && is_array($item['prices'])){
+                     foreach ($item['prices'] as $price_break) {
+                        echo $this->format_quantity_range($price_break['quantity_min'], $price_break['quantity_max'])."<br>";
+                     }
+                }
+                
+                ?>
             </td>
             <td class="column-actions">
                 <?php
                 $actions = array(
                     'edit' => sprintf(
                         '<a href="?page=cc-price-list-edit&id=%s">%s</a>',
-                        $variation['id'],
+                        $item['id'],
                         __('Edit', 'cc-price-list')
                     ),
                     'delete' => sprintf(
                         '<a href="?page=cc-price-list&action=delete&id=%s" onclick="return confirm(\'Are you sure?\')">%s</a>',
-                        $variation['id'],
+                        $item['id'],
                         __('Delete', 'cc-price-list')
                     )
                 );

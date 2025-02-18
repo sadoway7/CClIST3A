@@ -32,68 +32,76 @@ class CC_Price_List_Data_Handler {
      * @return array
      */
     public function get_products($filters = array()) {
-        global $wpdb;
+      global $wpdb;
 
-        $where = array('1=1');
-        $values = array();
+      $where = array('1=1');
+      $values = array();
 
-        if (!empty($filters['category'])) {
-            $where[] = 'category = %s';
-            $values[] = $filters['category'];
-        }
+      if (!empty($filters['category'])) {
+          $where[] = 'category = %s';
+          $values[] = $filters['category'];
+      }
 
-        if (!empty($filters['search'])) {
-            $where[] = '(item_name LIKE %s OR category LIKE %s)';
-            $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
-        }
-        
-        if (!empty($filters['size'])) {
-            $where[] = 'size = %s';
-            $values[] = $filters['size'];
-        }
+      if (!empty($filters['search'])) {
+          $where[] = '(item_name LIKE %s OR category LIKE %s)';
+          $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
+          $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
+      }
+      
+      if (!empty($filters['size'])) {
+          $where[] = 'size = %s';
+          $values[] = $filters['size'];
+      }
 
-        if (!empty($filters['price_min'])) {
-            $where[] = 'price >= %f';
-            $values[] = (float) $filters['price_min'];
-        }
+      if (!empty($filters['price_min'])) {
+          $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 2), ':', -1) AS DECIMAL(10,2)) >= %f";
+          $values[] = (float) $filters['price_min'];
+      }
+    
+      if (!empty($filters['price_max'])) {
+          $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 2), ':', -1) AS DECIMAL(10,2)) <= %f";
 
-        if (!empty($filters['price_max'])) {
-            $where[] = 'price <= %f';
-            $values[] = (float) $filters['price_max'];
-        }
+          $values[] = (float) $filters['price_max'];
+      }
 
-        if (!empty($filters['quantity_min'])) {
-            $where[] = 'quantity_min >= %d';
-            $values[] = (int) $filters['quantity_min'];
-        }
+      if (!empty($filters['quantity_min'])) {
+        $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 4), ':', -1) as UNSIGNED) >= %d";
+        $values[] = (int) $filters['quantity_min'];
+    }
 
-        if (!empty($filters['quantity_max'])) {
-            $where[] = 'quantity_max <= %d';
-            $values[] = (int) $filters['quantity_max'];
-        }
-        
-        $limit_clause = '';
-        if (isset($filters['per_page']) && isset($filters['page'])) {
-            $offset = ($filters['page'] - 1) * $filters['per_page'];
-            $limit_clause = $wpdb->prepare("LIMIT %d, %d", $offset, $filters['per_page']);
-        }
+      if (!empty($filters['quantity_max'])) {
+          $where[] = "CAST(IFNULL(NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 5), ':', -1), ''), '4294967295') as UNSIGNED) <= %d";
+          $values[] = (int) $filters['quantity_max'];
+      }
+      
+      $limit_clause = '';
+      if (isset($filters['per_page']) && isset($filters['page'])) {
+          $offset = ($filters['page'] - 1) * $filters['per_page'];
+          $limit_clause = $wpdb->prepare("LIMIT %d, %d", $offset, $filters['per_page']);
+      }
 
-        $orderby_clause = 'ORDER BY item_name ASC, size ASC, quantity_min ASC';
-        if (!empty($filters['orderby'])) {
-            $order = (!empty($filters['order']) && in_array(strtoupper($filters['order']), ['ASC', 'DESC'])) ? strtoupper($filters['order']) : 'ASC';
-            $orderby_clause = $wpdb->prepare("ORDER BY {$filters['orderby']} {$order}");
-        }
+      $orderby_clause = 'ORDER BY item_name ASC, size ASC, CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, \':\', 4), \':\', -1) as UNSIGNED) ASC';
+      if (!empty($filters['orderby'])) {
+        $order = (!empty($filters['order']) && in_array(strtoupper($filters['order']), ['ASC', 'DESC'])) ? strtoupper($filters['order']) : 'ASC';
+        $orderby_clause = $wpdb->prepare("ORDER BY {$filters['orderby']} {$order}");
+      }
 
-        $query = "SELECT * FROM {$this->table_name} WHERE " . implode(' AND ', $where) . " {$orderby_clause} {$limit_clause}";
-        
-        if (!empty($values)) {
-            $query = $wpdb->prepare($query, $values);
-        }
+      $query = "SELECT * FROM {$this->table_name} WHERE " . implode(' AND ', $where) . " {$orderby_clause} {$limit_clause}";
 
-        $results = $wpdb->get_results($query, ARRAY_A);
-        
-        return $results;
+      if (!empty($values)) {
+          $query = $wpdb->prepare($query, $values);
+      }
+
+      $results = $wpdb->get_results($query, ARRAY_A);
+
+      // Unserialize the 'prices' column
+        foreach ($results as &$product) {
+          if (!empty($product['prices'])) {
+            $product['prices'] = unserialize($product['prices']);
+          }
+        }
+      
+      return $results;
     }
     
     /**
@@ -117,29 +125,29 @@ class CC_Price_List_Data_Handler {
             $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
             $values[] = '%' . $wpdb->esc_like($filters['search']) . '%';
         }
-        
         if (!empty($filters['size'])) {
             $where[] = 'size = %s';
             $values[] = $filters['size'];
         }
-        
-        if (!empty($filters['price_min'])) {
-            $where[] = 'price >= %f';
-            $values[] = (float) $filters['price_min'];
-        }
 
+        if (!empty($filters['price_min'])) {
+          $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 2), ':', -1) AS DECIMAL(10,2)) >= %f";
+          $values[] = (float) $filters['price_min'];
+      }
+    
         if (!empty($filters['price_max'])) {
-            $where[] = 'price <= %f';
+          $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 2), ':', -1) AS DECIMAL(10,2)) <= %f";
             $values[] = (float) $filters['price_max'];
         }
-        
+    
         if (!empty($filters['quantity_min'])) {
-            $where[] = 'quantity_min >= %d';
-            $values[] = (int) $filters['quantity_min'];
+          $where[] = "CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 4), ':', -1) as UNSIGNED) >= %d";
+          $values[] = (int) $filters['quantity_min'];
         }
-        
+
         if (!empty($filters['quantity_max'])) {
-            $where[] = 'quantity_max <= %d';
+          $where[] = "CAST(IFNULL(NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 5), ':', -1), ''), '4294967295') as UNSIGNED) <= %d";
+
             $values[] = (int) $filters['quantity_max'];
         }
 
@@ -164,7 +172,7 @@ class CC_Price_List_Data_Handler {
    public function get_products_for_api() {
        global $wpdb;
        
-       $query = "SELECT * FROM {$this->table_name} ORDER BY item_name ASC, size ASC, quantity_min ASC";
+       $query = "SELECT * FROM {$this->table_name} ORDER BY item_name ASC, size ASC, CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(prices, ':', 4), ':', -1) as UNSIGNED) ASC";
        $results = $wpdb->get_results($query, ARRAY_A);
 
        if(empty($results)){
@@ -174,6 +182,7 @@ class CC_Price_List_Data_Handler {
        $grouped_products = array();
        
        foreach ($results as $product) {
+            $product['prices'] = unserialize($product['prices']);
            $item_name = $product['item_name'];
            $size = $product['size'];
 
@@ -264,31 +273,13 @@ class CC_Price_List_Data_Handler {
 
         $query = $wpdb->prepare("SELECT * FROM {$this->table_name} WHERE id = %d", $id);
         $product = $wpdb->get_row($query, ARRAY_A);
-        
+      if (isset($product['prices'])) {
+        $product['prices'] = unserialize($product['prices']);
+      }      
         return $product;
     }
 
-    /**
-    * Get all variations for a product
-    *
-    * @param int $product_id The product ID
-    * @return array The product variations
-    */
-    public function get_product_variations($product_id) {
-       global $wpdb;
-
-        // Assuming all variations share the same item_name
-        $product = $this->get_product($product_id);
-        if (!$product) {
-            return [];
-        }
-        
-        $query = $wpdb->prepare("SELECT * FROM {$this->table_name} WHERE item_name = %s ORDER BY size ASC, quantity_min ASC", $product['item_name']);
-        $variations = $wpdb->get_results($query, ARRAY_A);
-    
-        return $variations;
-    }
-
+   
     /**
      * Group products by item name
      *
@@ -296,29 +287,32 @@ class CC_Price_List_Data_Handler {
      * @return array
      */
     private function group_products($products) {
-        $grouped = array();
+      $grouped = array();
 
-        foreach ($products as $product) {
-            $key = $product['item_name'];
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = array(
-                    'name' => $key,
-                    'category' => $product['category'],
-                    'variations' => array()
-                );
-            }
+      foreach ($products as $product) {
+        $item_name = $product['item_name'];
+        $size      = $product['size'];
 
-            $grouped[$key]['variations'][] = array(
-                'id' => $product['id'],
-                'size' => $product['size'],
-                'price' => (float) $product['price'],
-                'quantity_min' => (int) $product['quantity_min'],
-                'quantity_max' => $product['quantity_max'] ? (int) $product['quantity_max'] : null,
-                'discount' => $product['discount'] ? (float) $product['discount'] : 0
-            );
+        if (!isset($grouped[$item_name])) {
+          $grouped[$item_name] = array(
+            'item_name' => $item_name,
+            'category' => $product['category'],
+            'variations' => array()
+          );
         }
 
-        return array_values($grouped);
+        // Ensure 'prices' key exists and is an array
+        $prices = isset($product['prices']) ? $product['prices'] : array();
+
+        $grouped[$item_name]['variations'][] = [
+            'id'          => $product['id'],
+            'size'        => $size,
+            'prices'      => $prices
+        ];
+
+      }
+
+      return array_values($grouped);
     }
 
     /**
@@ -327,43 +321,44 @@ class CC_Price_List_Data_Handler {
      * @param array $data Product data
      * @return int|false The number of rows inserted, or false on error
      */
-    public function add_product($data) {
-        global $wpdb;
+   public function add_product($data)
+   {
+       global $wpdb;
 
-        $defaults = array(
-            'category' => '',
-            'item_name' => '',
-            'size' => null,
-            'price' => 0,
-            'quantity_min' => 1,
-            'quantity_max' => null,
-            'discount' => null
-        );
+       $defaults = array(
+           'category' => '',
+           'item_name' => '',
+           'size' => null,
+           'prices' => null
+       );
 
-        $data = wp_parse_args($data, $defaults);
-        
-        return $wpdb->insert(
-            $this->table_name,
-            array(
-                'category' => sanitize_text_field($data['category']),
-                'item_name' => sanitize_text_field($data['item_name']),
-                'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
-                'price' => (float) $data['price'],
-                'quantity_min' => (int) $data['quantity_min'],
-                'quantity_max' => $data['quantity_max'] ? (int) $data['quantity_max'] : null,
-                'discount' => $data['discount'] ? (float) $data['discount'] : null
-            ),
-            array(
-                '%s', // category
-                '%s', // item_name
-                '%s', // size
-                '%f', // price
-                '%d', // quantity_min
-                '%d', // quantity_max
-                '%f'  // discount
-            )
-        );
-    }
+       $data = wp_parse_args($data, $defaults);
+
+       // Prepare the 'prices' data
+       $prices_data = [];
+
+       if (is_array($data['prices'])) {
+          $prices_data = $data['prices'];
+       }
+       
+       return $wpdb->insert(
+        $this->table_name,
+        array(
+            'category' => sanitize_text_field($data['category']),
+            'item_name' => sanitize_text_field($data['item_name']),
+            'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
+            'prices' =>  serialize($prices_data) 
+        ),
+        array(
+            '%s', // category
+            '%s', // item_name
+            '%s', // size
+            '%s'  // prices
+        )
+    );
+       
+       
+   }
 
     /**
      * Update a product
@@ -374,6 +369,21 @@ class CC_Price_List_Data_Handler {
      */
     public function update_product($id, $data) {
         global $wpdb;
+      
+        $defaults = array(
+           'category' => '',
+           'item_name' => '',
+           'size' => null,
+           'prices' => null
+       );
+
+       $data = wp_parse_args($data, $defaults);
+       // Prepare the 'prices' data
+       $prices_data = [];
+      
+       if (is_array($data['prices'])) {
+          $prices_data = $data['prices'];
+       }
 
         return $wpdb->update(
             $this->table_name,
@@ -381,20 +391,14 @@ class CC_Price_List_Data_Handler {
                 'category' => sanitize_text_field($data['category']),
                 'item_name' => sanitize_text_field($data['item_name']),
                 'size' => $data['size'] ? sanitize_text_field($data['size']) : null,
-                'price' => (float) $data['price'],
-                'quantity_min' => (int) $data['quantity_min'],
-                'quantity_max' => $data['quantity_max'] ? (int) $data['quantity_max'] : null,
-                'discount' => $data['discount'] ? (float) $data['discount'] : null
+                'prices' =>  serialize($prices_data)
             ),
             array('id' => $id),
             array(
                 '%s', // category
                 '%s', // item_name
                 '%s', // size
-                '%f', // price
-                '%d', // quantity_min
-                '%d', // quantity_max
-                '%f'  // discount
+                '%s'  // prices
             ),
             array('%d') // id format
         );

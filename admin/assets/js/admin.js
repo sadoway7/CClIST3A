@@ -33,8 +33,7 @@ jQuery(document).ready(function($) {
     const exportForm = $('#export-form');
     const exportSubmit = $('#export_submit');
 
-    // Templates
-    const sizeVariationTemplate = $('.variation-template.size-variation').html();
+    // Templates   
     const quantityBreakTemplate = $('.variation-template.quantity-break').html();
 
     // State
@@ -54,21 +53,9 @@ jQuery(document).ready(function($) {
     function init() {
         bindEvents();
         initializeGroups();
-        switchVariationTemplateOnLoad();
     }
     
-    /**
-    * Check variation type on page load and show the correct template
-    */
-    function switchVariationTemplateOnLoad() {
-       if ($('input[name="variation_type"]:checked').val() === 'size') {
-            $('.variation-template.quantity-break').hide();
-            $('.variation-template.size-variation').show();
-        } else if ($('input[name="variation_type"]:checked').val() === 'quantity') {
-            $('.variation-template.size-variation').hide();
-            $('.variation-template.quantity-break').show();
-        }
-    }
+    
 
     /**
      * Bind event listeners
@@ -95,7 +82,7 @@ jQuery(document).ready(function($) {
             editProductForm.on('submit', handleEditProduct);
         }
         
-        variationTypeSelector.on('change', switchVariationTemplate);
+        
         variationsContainer.on('click', '.add-variation', addVariation);
         variationsContainer.on('click', '.remove-variation', removeVariation);
 
@@ -208,45 +195,44 @@ jQuery(document).ready(function($) {
 
     // ------ Add Product Form Functionality ------
 
-    /**
+   /**
      * Handle add product form submission
      * @param {Event} e 
      */
     function handleAddProduct(e) {
         e.preventDefault();
-
+    
         const formData = $(this).serializeArray();
         const productData = {
             action: 'add_product',
-            nonce: ccPriceList.nonce
+            nonce: ccPriceList.nonce,
+            prices: [] // Initialize prices array
         };
-
-        // Convert form data to object
+    
+        // Convert form data to object, excluding variation fields for now
         formData.forEach(field => {
-            productData[field.name] = field.value;
+            if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
+                productData[field.name] = field.value;
+            }
         });
-
-        // Add variations data
-        const variationType = $('input[name="variation_type"]:checked').val();
-
-        if (variationType === 'size') {
-            productData.size = [];
-            productData.price = [];
-            $('.variation-row', activeVariationsContainer).each(function() {
-                productData.size.push($('input[name="size[]"]', this).val());
-                productData.price.push($('input[name="price[]"]', this).val());
-            });
-        } else if(variationType === 'quantity'){
-            productData.quantity_min = [];
-            productData.quantity_max = [];
-            productData.price = [];
-            $('.variation-row', activeVariationsContainer).each(function() {
-                productData.quantity_min.push($('input[name="quantity_min[]"]', this).val());
-                productData.quantity_max.push($('input[name="quantity_max[]"]', this).val());
-                productData.price.push($('input[name="price[]"]', this).val());
-            });
-        }
-        
+    
+        // Collect Price Breaks
+        $('.variation-row', activeVariationsContainer).each(function() {
+            const min = $('input[name="quantity_min[]"]', this).val();
+            const max = $('input[name="quantity_max[]"]', this).val();
+            const price = $('input[name="price[]"]', this).val();
+    
+            // Ensure that we at least have a min quantity and a price
+            if (min !== '' && price !== '') {
+                productData.prices.push({
+                    quantity_min: min,
+                    quantity_max: max !== '' ? max : null, // Allow for open-ended ranges
+                    price: price
+                });
+            }
+        });
+    
+        // Send the data
         $.ajax({
             url: ccPriceList.ajaxUrl,
             method: 'POST',
@@ -274,37 +260,37 @@ jQuery(document).ready(function($) {
     */
     function handleEditProduct(e) {
         e.preventDefault();
+    
         const formData = $(this).serializeArray();
-        
         const productData = {
             action: 'edit_product',
-            nonce: ccPriceList.nonce
+            nonce: ccPriceList.nonce,
+            prices: [] // Initialize prices array
         };
-
-        // Convert form data to object
+    
+        // Convert form data to object, excluding variation fields
         formData.forEach(field => {
-            productData[field.name] = field.value;
+            if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
+                productData[field.name] = field.value;
+            }
         });
-
-        // Add variations data
-        const variationType = $('input[name="variation_type"]:checked').val();
-        if (variationType === 'size') {
-            productData.size = [];
-            productData.price = [];
-            $('.variation-row', activeVariationsContainer).each(function() {
-                productData.size.push($('input[name="size[]"]', this).val());
-                productData.price.push($('input[name="price[]"]', this).val());
-            });
-        } else if (variationType === 'quantity') {
-            productData.quantity_min = [];
-            productData.quantity_max = [];
-            productData.price = [];
-            $('.variation-row', activeVariationsContainer).each(function() {
-                productData.quantity_min.push($('input[name="quantity_min[]"]', this).val());
-                productData.quantity_max.push($('input[name="quantity_max[]"]', this).val());
-                productData.price.push($('input[name="price[]"]', this).val());
-            });
-        }
+    
+        // Collect Price Breaks
+        $('.variation-row', activeVariationsContainer).each(function() {
+            const min = $('input[name="quantity_min[]"]', this).val();
+            const max = $('input[name="quantity_max[]"]', this).val();
+            const price = $('input[name="price[]"]', this).val();
+    
+            if (min !== '' && price !== '') {
+                productData.prices.push({
+                    quantity_min: min,
+                    quantity_max: max !== '' ? max : null,
+                    price: price
+                });
+            }
+        });
+    
+        // Send the data
         $.ajax({
             url: ccPriceList.ajaxUrl,
             method: 'POST',
@@ -324,34 +310,14 @@ jQuery(document).ready(function($) {
             }
         });
     }
-
-    /**
-     * Switch variation template based on selection
-     */
-    function switchVariationTemplate() {
-        const selectedType = $(this).val();
-        activeVariationsContainer.html(''); // Clear current variations
-
-        if (selectedType === 'size') {
-            $('.variation-template.quantity-break').hide();
-            $('.variation-template.size-variation').show();
-        } else {
-            $('.variation-template.size-variation').hide();
-            $('.variation-template.quantity-break').show();
-        }
-    }
-
+   
     /**
      * Add variation row
      */
     function addVariation() {
-        const selectedType = $('input[name="variation_type"]:checked').val();
-        let template = '';
-        if (selectedType === 'size') {
-           template = sizeVariationTemplate;
-        } else {
-            template = quantityBreakTemplate;
-        }
+       
+        let template = quantityBreakTemplate;
+        
 
         activeVariationsContainer.append(template);
     }

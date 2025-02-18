@@ -42,5 +42,9 @@ class CC_Price_List_Activator {
 
         // Set version in options
         add_option('cc_price_list_version', CC_PRICE_LIST_VERSION);
+
+        // Include and run migrations
+        include_once( plugin_dir_path( __FILE__ ) . 'db_updates/update_01_add_prices_column.php');
+        update_01_add_prices_column();
     }
 }

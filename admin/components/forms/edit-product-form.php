@@ -23,8 +23,8 @@ if (!$product) {
     wp_die('Product not found');
 }
 
-// Get all variations for this product
-$variations = $cc_price_list_data_handler->get_product_variations($product_id);
+$prices = isset($product['prices']) ? $product['prices'] : [];
+
 ?>
 
 <div class="wrap">
@@ -60,35 +60,23 @@ $variations = $cc_price_list_data_handler->get_product_variations($product_id);
                             <p class="description">The name of the product</p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="item_name">Size</label>
+                        </th>
+                        <td>
+                            <input type="text" id="size" name="size" class="regular-text" value="<?php echo esc_attr($product['size']);?>">
+                            <p class="description">Leave blank for no size variation</p>
+                        </td>
+                    </tr>
                 </table>
             </div>
 
             <!-- Product Variations -->
             <div class="form-section" id="variations-section">
-                <h2>Product Variations</h2>
-                <div class="variation-type-selector">
-                    <label>
-                        <input type="radio" name="variation_type" value="size" 
-                            <?php echo (!isset($product['quantity_min']) ? 'checked' : ''); ?>>
-                        Size Variations
-                    </label>
-                    <label>
-                        <input type="radio" name="variation_type" value="quantity"
-                            <?php echo (isset($product['quantity_min']) ? 'checked' : ''); ?>>
-                        Quantity Price Breaks
-                    </label>
-                </div>
-
+                <h2>Price Breaks</h2>
                 <div id="variations-container">
-                    <!-- Template for size variation -->
-                    <div class="variation-template size-variation" style="display: none;">
-                        <div class="variation-row">
-                            <input type="text" name="size[]" placeholder="Size (e.g., 500g, 1kg)" class="medium-text">
-                            <input type="number" name="price[]" placeholder="Price" class="small-text" step="0.01">
-                            <button type="button" class="button remove-variation">Remove</button>
-                        </div>
-                    </div>
-
+                  
                     <!-- Template for quantity break -->
                     <div class="variation-template quantity-break" style="display: none;">
                         <div class="variation-row">
@@ -101,26 +89,17 @@ $variations = $cc_price_list_data_handler->get_product_variations($product_id);
 
                     <!-- Active variations will be inserted here -->
                     <div id="active-variations">
-                        <?php if (isset($product['quantity_min'])): ?>
+                      <?php if(is_array($prices)): foreach ($prices as $price_break): ?>
                             <!-- Quantity break variations -->
-                            <?php foreach ($variations as $variation): ?>
+                           
                                 <div class="variation-row">
-                                    <input type="number" name="quantity_min[]" value="<?php echo esc_attr($variation['quantity_min']); ?>" class="small-text">
-                                    <input type="number" name="quantity_max[]" value="<?php echo esc_attr($variation['quantity_max']); ?>" class="small-text">
-                                    <input type="number" name="price[]" value="<?php echo esc_attr($variation['price']); ?>" class="small-text" step="0.01">
+                                    <input type="number" name="quantity_min[]" value="<?php echo esc_attr($price_break['quantity_min']); ?>" class="small-text">
+                                    <input type="number" name="quantity_max[]" value="<?php echo esc_attr($price_break['quantity_max']); ?>" class="small-text">
+                                    <input type="number" name="price[]" value="<?php echo esc_attr($price_break['price']); ?>" class="small-text" step="0.01">
                                     <button type="button" class="button remove-variation">Remove</button>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <!-- Size variations -->
-                            <?php foreach ($variations as $variation): ?>
-                                <div class="variation-row">
-                                    <input type="text" name="size[]" value="<?php echo esc_attr($variation['size']); ?>" class="medium-text">
-                                    <input type="number" name="price[]" value="<?php echo esc_attr($variation['price']); ?>" class="small-text" step="0.01">
-                                    <button type="button" class="button remove-variation">Remove</button>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                           
+                        <?php endforeach; endif; ?>
                     </div>
 
                     <button type="button" class="button add-variation">Add Variation</button>
