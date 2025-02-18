@@ -1,137 +1,256 @@
-/* Product Form Dialog */
-#product-form-dialog {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
-    padding: 20px;
-    margin: 20px 0;
-    max-width: 800px;
+/* CC Price List Admin Styles */
+
+.cc-price-list-admin-content {
+    margin-top: 20px;
 }
 
-#product-form label {
-    display: inline-block;
-    width: 120px;
-    font-weight: 600;
+/* Filters Section */
+.cc-price-list-admin-content .tablenav {
+    padding: 8px 0;
 }
 
-#product-form input[type="text"],
-#product-form input[type="number"] {
+.cc-price-list-admin-content #search_item {
     width: 200px;
+    margin: 0 5px;
 }
 
-/* Variations */
-.variations-list {
-    margin: 20px 0;
-    padding: 10px;
-    background: #f9f9f9;
-    border: 1px solid #e5e5e5;
+/* WP List Table Customization */
+.wp-list-table .group-row {
+    background: #f8f9fa;
 }
 
-.variation-row {
-    padding: 15px;
-    margin-bottom: 15px;
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    position: relative;
+.wp-list-table .group-row td {
+    padding: 12px 15px;
 }
 
-.variation-row:last-child {
-    margin-bottom: 0;
+.wp-list-table .group-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
 }
 
-.variation-row p {
-    margin: 10px 0;
+.wp-list-table .toggle-group {
+    margin-right: 10px;
+    transition: transform 0.2s ease;
 }
 
-.variation-row .description {
+.wp-list-table .group-header.collapsed .toggle-group {
+    transform: rotate(-90deg);
+}
+
+.wp-list-table .group-category {
     color: #666;
-    font-style: italic;
-    margin-left: 10px;
+    margin-left: 15px;
     font-size: 12px;
 }
 
-.remove-variation {
-    position: absolute;
-    right: 10px;
-    top: 10px;
+.wp-list-table .variation-row {
+    background: #fff;
 }
 
-/* Variations Display in Table */
-.variations-display {
-    max-width: 300px;
+.wp-list-table .variation-row.hidden {
+    display: none;
 }
 
-.variation-entry {
-    padding: 5px 10px;
-    margin: 2px 0;
-    background: #f9f9f9;
-    border: 1px solid #e5e5e5;
-    border-radius: 3px;
+.wp-list-table .variation-row td {
+    padding: 12px 15px;
+    vertical-align: middle;
 }
 
-/* Filters */
-.tablenav.top {
-    margin: 20px 0;
+.wp-list-table .column-price {
+    width: 200px;
 }
 
-#filter-category {
+.wp-list-table .column-quantity {
+    width: 120px;
+}
+
+.wp-list-table .column-actions {
+    width: 100px;
+    text-align: right;
+}
+
+/* Product Groups */
+.product-group {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-bottom: 10px;
+}
+
+.group-header {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ccd0d4;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.group-header:hover {
+    background: #f0f0f1;
+}
+
+.group-title {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.toggle-icon {
     margin-right: 10px;
+    transition: transform 0.2s ease;
 }
 
-#search-products {
-    padding: 3px 8px;
-    font-size: 1.7ex;
-    line-height: 1.7ex;
-    height: 2.2ex;
+.group-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
 }
 
-/* Action Buttons */
-.page-title-action {
-    margin-left: 4px;
+.group-actions {
+    margin-left: 15px;
+}
+
+.group-actions a {
+    text-decoration: none;
+    color: #2271b1;
+    margin-left: 10px;
+}
+
+.group-actions a:hover {
+    color: #135e96;
+}
+
+.group-content {
+    padding: 15px;
+    transition: max-height 0.3s ease-out;
+}
+
+.group-content.collapsed {
+    display: none;
+}
+
+/* Price Breaks */
+.price-break {
+    background: #f0f0f1;
     padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    display: inline-block;
+    margin: 2px 0;
 }
 
-.submit {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #ddd;
+.column-price .price-break {
+    display: block;
+    margin-bottom: 4px;
 }
 
-/* Table Styles */
-.wp-list-table th {
+.column-price .price-break:last-child {
+    margin-bottom: 0;
+}
+
+/* Product Variations */
+.variation-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.variation-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.variation-item:last-child {
+    border-bottom: none;
+}
+
+.price-breaks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+/* Bulk Actions */
+.bulkactions {
+    margin: 8px 0;
+}
+
+/* Row Actions */
+.row-actions {
+    visibility: hidden;
+    color: #666;
+}
+
+.variation-row:hover .row-actions {
+    visibility: visible;
+}
+
+.row-actions span {
+    padding: 0 4px;
+}
+
+.row-actions span:first-child {
+    padding-left: 0;
+}
+
+/* Utility Classes */
+.align-right {
+    text-align: right;
+}
+
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Notice Styling */
+.notice {
+    margin: 15px 0;
+}
+
+/* Dialog Styling */
+#delete-confirmation {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 3px 6px rgba(0,0,0,.3);
+}
+
+/*size highlight*/
+.size-highlight{
     font-weight: 600;
-}
-
-.wp-list-table td {
-    vertical-align: top;
-}
-
-.wp-list-table .button {
-    margin-right: 5px;
 }
 
 /* Responsive Adjustments */
 @media screen and (max-width: 782px) {
-    #product-form label {
-        display: block;
-        margin-bottom: 5px;
-    }
-    
-    #product-form input[type="text"],
-    #product-form input[type="number"] {
+    .cc-price-list-admin-content #search_item {
         width: 100%;
+        margin: 5px 0;
     }
-    
-    .variations-display {
-        max-width: none;
-    }
-    
-    .variation-row {
-        padding-right: 40px;
-    }
-}
 
-/* Utilities */
-.hidden {
-    display: none;
+    .group-actions {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .group-actions a {
+        margin: 5px 0;
+    }
+
+    .price-breaks {
+        flex-direction: column;
+    }
+
+    .wp-list-table .column-price,
+    .wp-list-table .column-quantity,
+    .wp-list-table .column-actions {
+        width: auto;
+    }
+
+    .row-actions {
+        visibility: visible;
+    }
 }

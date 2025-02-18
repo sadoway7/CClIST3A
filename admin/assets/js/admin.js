@@ -1,245 +1,466 @@
 jQuery(document).ready(function($) {
-    // Variation template for adding new variations
-    const variationTemplate = `
-        <div class="variation-row">
-            <input type="hidden" name="variation_id" value="">
-            <p>
-                <label>Size:</label>
-                <input type="text" name="size" class="variation-size">
-            </p>
-            <p>
-                <label>Price:</label>
-                <input type="number" name="price" class="variation-price" step="0.01">
-            </p>
-            <p>
-                <label>Min Quantity:</label>
-                <input type="number" name="quantity_min" class="variation-quantity-min" value="1">
-            </p>
-            <p>
-                <label>Max Quantity:</label>
-                <input type="number" name="quantity_max" class="variation-quantity-max">
-                <span class="description">Leave empty for no upper limit</span>
-            </p>
-            <p>
-                <label>Discount (%):</label>
-                <input type="number" name="discount" class="variation-discount" step="0.01" min="0" max="100">
-            </p>
-            <button type="button" class="button remove-variation">Remove</button>
-        </div>
-    `;
+    'use strict';
 
-    // Download example CSV
-    $('#download-example-csv').on('click', function(e) {
+    // Cache DOM elements
+    const container = $('.wp-list-table');
+    const filterCategory = $('#filter_category');
+    const searchItem = $('#search_item');
+    const filterButton = $('#filter_button');
+    const expandAllBtn = $('#expand_all');
+    const collapseAllBtn = $('#collapse_all');
+    const bulkActionSelect = $('select[name="bulk_action"]');
+    const bulkActionButton = $('#doaction');
+    
+    const filterSize = $('#filter_size');
+    const filterPriceMin = $('#filter_price_min');
+    const filterPriceMax = $('#filter_price_max');
+    const filterQuantityMin = $('#filter_quantity_min');
+    const filterQuantityMax = $('#filter_quantity_max');
+    
+
+    // Add Product Form elements
+    const addProductForm = $('#cc-price-list-product-form');
+    // Edit product form elements
+    const editProductForm = $('#cc-price-list-product-form');
+
+    const variationTypeSelector = $('input[name="variation_type"]');
+    const variationsContainer = $('#variations-container');
+    const activeVariationsContainer = $('#active-variations');
+    
+    // Import/Export Form elements
+    const importForm = $('#import-form');
+    const importSubmit = $('#import_submit');
+    const exportForm = $('#export-form');
+    const exportSubmit = $('#export_submit');
+
+    // Templates
+    const sizeVariationTemplate = $('.variation-template.size-variation').html();
+    const quantityBreakTemplate = $('.variation-template.quantity-break').html();
+
+    // State
+    let currentFilters = {
+        category: '',
+        search: '',
+        size: '',
+        price_min: '',
+        price_max: '',
+        quantity_min: '',
+        quantity_max: ''
+    };
+
+    /**
+     * Initialize the admin interface
+     */
+    function init() {
+        bindEvents();
+        initializeGroups();
+        switchVariationTemplateOnLoad();
+    }
+    
+    /**
+    * Check variation type on page load and show the correct template
+    */
+    function switchVariationTemplateOnLoad() {
+       if ($('input[name="variation_type"]:checked').val() === 'size') {
+            $('.variation-template.quantity-break').hide();
+            $('.variation-template.size-variation').show();
+        } else if ($('input[name="variation_type"]:checked').val() === 'quantity') {
+            $('.variation-template.size-variation').hide();
+            $('.variation-template.quantity-break').show();
+        }
+    }
+
+    /**
+     * Bind event listeners
+     */
+    function bindEvents() {
+        // Filter events
+        filterButton.on('click', handleFilter);
+        searchItem.on('keypress', function(e) {
+            if (e.which === 13) handleFilter();
+        });
+
+        // Group expansion events
+        expandAllBtn.on('click', expandAllGroups);
+        collapseAllBtn.on('click', collapseAllGroups);
+        container.on('click', '.group-header', toggleGroup);
+
+        // Add product form events
+        if (addProductForm.length) {
+            addProductForm.on('submit', handleAddProduct);
+        }
+
+        // Edit product form events
+        if (editProductForm.length){
+            editProductForm.on('submit', handleEditProduct);
+        }
+        
+        variationTypeSelector.on('change', switchVariationTemplate);
+        variationsContainer.on('click', '.add-variation', addVariation);
+        variationsContainer.on('click', '.remove-variation', removeVariation);
+
+        // Bulk delete confirmation
+        $(document).on('click', '.delete-action', function(e) {
+            if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Import/Export events
+        if(importForm.length){
+            importSubmit.on('click', handleImport);
+        }
+        if(exportForm.length){
+            exportSubmit.on('click', handleExport);
+        }
+
+        // Initialize tooltips
+        $('.cc-price-list-tooltip').tooltip();
+    }
+
+    /**
+     * Initialize group display state
+     */
+    function initializeGroups() {
+        // Initially hide all variation rows
+        $('.variation-row').addClass('hidden');
+        
+        // Show variations for initially expanded groups
+        $('.group-header:not(.collapsed)').each(function() {
+            showGroupVariations($(this).closest('.group-row'));
+        });
+    }
+
+    /**
+     * Toggle a product group's expansion state
+     * @param {Event} e 
+     */
+    function toggleGroup(e) {
+        const $groupRow = $(this).closest('.group-row');
+        const $icon = $groupRow.find('.toggle-group');
+        const isCollapsed = $groupRow.hasClass('collapsed');
+
+        if (isCollapsed) {
+            $groupRow.removeClass('collapsed');
+            $icon.removeClass('dashicons-arrow-right').addClass('dashicons-arrow-down');
+            showGroupVariations($groupRow);
+        } else {
+            $groupRow.addClass('collapsed');
+            $icon.removeClass('dashicons-arrow-down').addClass('dashicons-arrow-right');
+            hideGroupVariations($groupRow);
+        }
+    }
+
+    /**
+     * Show variations for a group
+     * @param {jQuery} $groupRow 
+     */
+    function showGroupVariations($groupRow) {
+        const groupId = $groupRow.data('group-id');
+        $(`.variation-row[data-group-id="${groupId}"]`).removeClass('hidden');
+    }
+
+    /**
+     * Hide variations for a group
+     * @param {jQuery} $groupRow 
+     */
+    function hideGroupVariations($groupRow) {
+        const groupId = $groupRow.data('group-id');
+        $(`.variation-row[data-group-id="${groupId}"]`).addClass('hidden');
+    }
+
+    /**
+     * Expand all product groups
+     */
+    function expandAllGroups() {
+        $('.group-row').removeClass('collapsed')
+            .find('.toggle-group')
+            .removeClass('dashicons-arrow-right')
+            .addClass('dashicons-arrow-down');
+        $('.variation-row').removeClass('hidden');
+    }
+
+    /**
+     * Collapse all product groups
+     */
+    function collapseAllGroups() {
+        $('.group-row').addClass('collapsed')
+            .find('.toggle-group')
+            .removeClass('dashicons-arrow-down')
+            .addClass('dashicons-arrow-right');
+        $('.variation-row').addClass('hidden');
+    }
+
+    /**
+     * Handle filter button click
+     */
+   function handleFilter() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('category', filterCategory.val());
+        params.set('s', searchItem.val());
+        params.set('size', filterSize.val());
+        params.set('price_min', filterPriceMin.val());
+        params.set('price_max', filterPriceMax.val());
+        params.set('quantity_min', filterQuantityMin.val());
+        params.set('quantity_max', filterQuantityMax.val());
+        window.location.search = params.toString();
+    }
+
+    // ------ Add Product Form Functionality ------
+
+    /**
+     * Handle add product form submission
+     * @param {Event} e 
+     */
+    function handleAddProduct(e) {
         e.preventDefault();
+
+        const formData = $(this).serializeArray();
+        const productData = {
+            action: 'add_product',
+            nonce: ccPriceList.nonce
+        };
+
+        // Convert form data to object
+        formData.forEach(field => {
+            productData[field.name] = field.value;
+        });
+
+        // Add variations data
+        const variationType = $('input[name="variation_type"]:checked').val();
+
+        if (variationType === 'size') {
+            productData.size = [];
+            productData.price = [];
+            $('.variation-row', activeVariationsContainer).each(function() {
+                productData.size.push($('input[name="size[]"]', this).val());
+                productData.price.push($('input[name="price[]"]', this).val());
+            });
+        } else if(variationType === 'quantity'){
+            productData.quantity_min = [];
+            productData.quantity_max = [];
+            productData.price = [];
+            $('.variation-row', activeVariationsContainer).each(function() {
+                productData.quantity_min.push($('input[name="quantity_min[]"]', this).val());
+                productData.quantity_max.push($('input[name="quantity_max[]"]', this).val());
+                productData.price.push($('input[name="price[]"]', this).val());
+            });
+        }
         
         $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'cc_price_list_action',
-                cc_action: 'get_example_csv',
-                nonce: ccPriceList.nonce
-            },
+            url: ccPriceList.ajaxUrl,
+            method: 'POST',
+            data: productData,
             success: function(response) {
                 if (response.success) {
-                    // Create blob and download
-                    const blob = new Blob([response.data.content], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'price-list-example.csv';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
+                    showSuccess(response.data.message);
+                    addProductForm[0].reset();
+                    activeVariationsContainer.html('');
+                    setTimeout(() => {
+                        window.location.href = ccPriceList.adminUrl + '?page=cc-price-list';
+                    }, 1500);
                 } else {
-                    alert('Failed to get example CSV');
+                    showFormError(response.data.message);
                 }
             },
             error: function() {
-                alert('Failed to get example CSV');
+                showFormError('Failed to add product. Please try again.');
             }
         });
-    });
-
-    // Show/hide product form dialog
-    $('#add-new-product').on('click', function(e) {
-        e.preventDefault();
-        resetForm();
-        $('#product-form-dialog').show();
-    });
-
-    $('.cancel-form').on('click', function() {
-        $('#product-form-dialog').hide();
-    });
-
-    // Add new variation
-    $('.add-variation').on('click', function() {
-        $('.variations-list').append(variationTemplate);
-    });
-
-    // Remove variation
-    $(document).on('click', '.remove-variation', function() {
-        $(this).closest('.variation-row').remove();
-    });
-
-    // Edit product
-    $('.edit-product').on('click', function() {
-        const productData = $(this).data('product');
-        const category = $(this).data('category');
-        const item = $(this).data('item');
-
-        resetForm();
-        
-        $('#product-id').val(productData.id);
-        $('#product-category').val(category);
-        $('#product-item').val(item);
-
-        // Add existing variations
-        productData.variations.forEach(variation => {
-            const $variationRow = $(variationTemplate);
-            $variationRow.find('[name="variation_id"]').val(variation.id);
-            $variationRow.find('[name="size"]').val(variation.size);
-            $variationRow.find('[name="price"]').val(variation.price);
-            $variationRow.find('[name="quantity_min"]').val(variation.quantity_min);
-            $variationRow.find('[name="quantity_max"]').val(variation.quantity_max);
-            $variationRow.find('[name="discount"]').val(variation.discount);
-            $('.variations-list').append($variationRow);
-        });
-
-        $('#product-form-dialog').show();
-    });
-
-    // Delete product
-    $('.delete-product').on('click', function() {
-        if (!confirm('Are you sure you want to delete this product?')) {
-            return;
-        }
-
-        const productId = $(this).data('product-id');
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'cc_price_list_action',
-                cc_action: 'delete_product',
-                product_id: productId,
-                nonce: ccPriceList.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert('Failed to delete product: ' + response.data);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', error);
-                console.log('Response:', xhr.responseText);
-                alert('Failed to delete product. Please try again.');
-            }
-        });
-    });
-
-    // Handle form submission
-    $('#product-form').on('submit', function(e) {
-        e.preventDefault();
-
-        const productData = {
-            product_id: $('#product-id').val(),
-            category: $('#product-category').val() || '',
-            item: $('#product-item').val() || '',
-            variations: []
-        };
-
-        // Collect variation data
-        $('.variation-row').each(function() {
-            const $row = $(this);
-            const variationData = {
-                id: $row.find('[name="variation_id"]').val(),
-                size: $row.find('[name="size"]').val() || null,
-                price: $row.find('[name="price"]').val() ? parseFloat($row.find('[name="price"]').val()) : 0,
-                quantity_min: $row.find('[name="quantity_min"]').val() ? parseInt($row.find('[name="quantity_min"]').val()) : 1,
-                quantity_max: $row.find('[name="quantity_max"]').val() 
-                    ? parseInt($row.find('[name="quantity_max"]').val())
-                    : null,
-                discount: $row.find('[name="discount"]').val()
-                    ? parseFloat($row.find('[name="discount"]').val())
-                    : null
-            };
-            
-            // Only add variations that have at least one field filled out
-            if (variationData.size || variationData.price || variationData.quantity_min || 
-                variationData.quantity_max || variationData.discount) {
-                productData.variations.push(variationData);
-            }
-        });
-
-        console.log('Saving product data:', productData);
-
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'cc_price_list_action',
-                cc_action: 'save_product',
-                product_data: JSON.stringify(productData),
-                nonce: ccPriceList.nonce
-            },
-            success: function(response) {
-                console.log('Save response:', response);
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert('Failed to save product: ' + response.data);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', error);
-                console.log('Response:', xhr.responseText);
-                alert('Failed to save product. Please try again.');
-            }
-        });
-    });
-
-    // Filter products by category
-    $('#filter-category').on('change', function() {
-        const category = $(this).val();
-        if (category) {
-            $('.product-row').hide();
-            $('.product-row[data-category="' + category + '"]').show();
-        } else {
-            $('.product-row').show();
-        }
-    });
-
-    // Search products
-    $('#search-products').on('input', function() {
-        const searchTerm = $(this).val().toLowerCase();
-        $('.product-row').each(function() {
-            const $row = $(this);
-            const itemName = $row.find('td:nth-child(2)').text().toLowerCase();
-            if (itemName.includes(searchTerm)) {
-                $row.show();
-            } else {
-                $row.hide();
-            }
-        });
-    });
-
-    // Helper function to reset the form
-    function resetForm() {
-        $('#product-form')[0].reset();
-        $('#product-id').val('');
-        $('.variations-list').empty();
     }
 
-    // Add initial empty variation row for new products
-    $('#add-new-product').on('click', function() {
-        if ($('.variations-list').is(':empty')) {
-            $('.add-variation').click();
+    /**
+    * Handle edit product form submission
+    */
+    function handleEditProduct(e) {
+        e.preventDefault();
+        const formData = $(this).serializeArray();
+        
+        const productData = {
+            action: 'edit_product',
+            nonce: ccPriceList.nonce
+        };
+
+        // Convert form data to object
+        formData.forEach(field => {
+            productData[field.name] = field.value;
+        });
+
+        // Add variations data
+        const variationType = $('input[name="variation_type"]:checked').val();
+        if (variationType === 'size') {
+            productData.size = [];
+            productData.price = [];
+            $('.variation-row', activeVariationsContainer).each(function() {
+                productData.size.push($('input[name="size[]"]', this).val());
+                productData.price.push($('input[name="price[]"]', this).val());
+            });
+        } else if (variationType === 'quantity') {
+            productData.quantity_min = [];
+            productData.quantity_max = [];
+            productData.price = [];
+            $('.variation-row', activeVariationsContainer).each(function() {
+                productData.quantity_min.push($('input[name="quantity_min[]"]', this).val());
+                productData.quantity_max.push($('input[name="quantity_max[]"]', this).val());
+                productData.price.push($('input[name="price[]"]', this).val());
+            });
         }
-    });
+        $.ajax({
+            url: ccPriceList.ajaxUrl,
+            method: 'POST',
+            data: productData,
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.data.message);
+                    setTimeout(function(){
+                        window.location.href = ccPriceList.adminUrl + '?page=cc-price-list';
+                    }, 1500)
+                } else {
+                    showFormError(response.data.message);
+                }
+            },
+            error: function() {
+                showFormError('Failed to update product. Please try again.');
+            }
+        });
+    }
+
+    /**
+     * Switch variation template based on selection
+     */
+    function switchVariationTemplate() {
+        const selectedType = $(this).val();
+        activeVariationsContainer.html(''); // Clear current variations
+
+        if (selectedType === 'size') {
+            $('.variation-template.quantity-break').hide();
+            $('.variation-template.size-variation').show();
+        } else {
+            $('.variation-template.size-variation').hide();
+            $('.variation-template.quantity-break').show();
+        }
+    }
+
+    /**
+     * Add variation row
+     */
+    function addVariation() {
+        const selectedType = $('input[name="variation_type"]:checked').val();
+        let template = '';
+        if (selectedType === 'size') {
+           template = sizeVariationTemplate;
+        } else {
+            template = quantityBreakTemplate;
+        }
+
+        activeVariationsContainer.append(template);
+    }
+
+    /**
+     * Remove variation row
+     */
+    function removeVariation() {
+        $(this).closest('.variation-row').remove();
+    }
+    
+    /**
+    * Handle import products
+    */
+    function handleImport(e){
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('action', 'import_products');
+        formData.append('nonce', ccPriceList.nonce);
+        formData.append('import_file', $('#import_file')[0].files[0]);
+        
+        $.ajax({
+            url: ccPriceList.ajaxUrl,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response){
+                if(response.success){
+                    showSuccess(response.data.message);
+                } else {
+                    showFormError(response.data.message)
+                }
+            },
+            error: function(){
+                showFormError('Import failed. Please check the file and try again.')
+            }
+        })
+    }
+    
+    /**
+    * Handle export products
+    */
+    function handleExport(e){
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('action', 'export_products');
+        formData.append('nonce', ccPriceList.nonce);
+        
+         $.ajax({
+            url: ccPriceList.ajaxUrl,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response){
+               if (response instanceof Blob) {
+                    // Create a blob URL
+                    const blobUrl = URL.createObjectURL(response);
+
+                    // Create a link and trigger the download
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = 'cc-price-list-export.csv';
+                    document.body.appendChild(link);
+                    link.click();
+
+                    // Clean up
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                    showSuccess('Export successful!');
+                } else if (response && response.success === false) {
+                    // Check for a direct error message
+                    showFormError(response.data.message);
+                } else {
+                    // Generic error
+                    showFormError('Export failed. Please try again.');
+                }
+            },
+            error: function(){
+                showFormError('Export failed. Please try again.')
+            }
+        })
+    }
+
+    /**
+     * Show success message
+     * @param {string} message 
+     */
+    function showSuccess(message) {
+        $('<div class="notice notice-success is-dismissible"><p>' + message + '</p></div>')
+            .insertBefore(editProductForm.length ? editProductForm : (addProductForm.length ? addProductForm : importForm))
+            .delay(5000)
+            .fadeOut(function() {
+                $(this).remove();
+            });
+    }
+
+    /**
+     * Show error message on add product form
+     * @param {string} message 
+     */
+    function showFormError(message) {
+        $('<div class="notice notice-error is-dismissible"><p>' + message + '</p></div>')
+            .insertBefore(editProductForm.length ? editProductForm : (addProductForm.length ? addProductForm : importForm));
+    }
+
+    // Initialize the admin interface
+    init();
 });
