@@ -41,31 +41,22 @@ if (!defined('WPINC')) {
                             <p class="description">The name of the product</p>
                         </td>
                     </tr>
-                     <tr>
-                        <th scope="row">
-                            <label for="item_name">Size</label>
-                        </th>
-                        <td>
-                            <input type="text" id="size" name="size" class="regular-text">
-                            <p class="description">Leave blank for no size variation</p>
-                        </td>
-                    </tr>
                 </table>
             </div>
 
             <!-- Product Variations -->
             <div class="form-section" id="variations-section">
-                <h2>Price Breaks</h2>
+                <h2>Variations</h2>
                 
-
                 <div id="variations-container">
-                  
-                    <!-- Template for quantity break -->
-                    <div class="variation-template quantity-break">
+                    <!-- Template for variation -->
+                    <div class="variation-template">
                         <div class="variation-row">
+                            <input type="text" name="size[]" placeholder="Size" class="small-text">
+                            <input type="number" name="price[]" placeholder="Price" class="small-text" step="0.01">
                             <input type="number" name="quantity_min[]" placeholder="Min Quantity" class="small-text">
                             <input type="number" name="quantity_max[]" placeholder="Max Quantity" class="small-text">
-                            <input type="number" name="price[]" placeholder="Price" class="small-text" step="0.01">
+                            <input type="number" name="discount[]" placeholder="Discount %" class="small-text" step="0.01">
                             <button type="button" class="button remove-variation">Remove</button>
                         </div>
                     </div>
@@ -73,7 +64,7 @@ if (!defined('WPINC')) {
                     <!-- Active variations will be inserted here -->
                     <div id="active-variations"></div>
 
-                    <button type="button" class="button add-variation">Add Price Break</button>
+                    <button type="button" class="button add-variation">Add Variation</button>
                 </div>
             </div>
 
@@ -87,7 +78,7 @@ if (!defined('WPINC')) {
 
 <style>
 .cc-price-list-form-wrapper {
-    max-width: 800px;
+    max-width: 1000px;
     margin-top: 20px;
 }
 
@@ -105,14 +96,6 @@ if (!defined('WPINC')) {
     border-bottom: 1px solid #ccd0d4;
 }
 
-.variation-type-selector {
-    margin-bottom: 20px;
-}
-
-.variation-type-selector label {
-    margin-right: 20px;
-}
-
 .variation-row {
     display: flex;
     gap: 10px;
@@ -120,8 +103,8 @@ if (!defined('WPINC')) {
     margin-bottom: 10px;
 }
 
-.medium-text {
-    width: 200px;
+.variation-row input {
+    margin: 0;
 }
 
 .small-text {
@@ -138,5 +121,22 @@ if (!defined('WPINC')) {
 
 .remove-variation:hover {
     color: #dc3232;
+}
+
+.variation-template {
+    display: none;
+}
+
+/* Headers for variation fields */
+#variations-container::before {
+    content: "Size Price Min Max Discount";
+    display: flex;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+#variations-container::before > * {
+    width: 100px;
 }
 </style>

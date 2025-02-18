@@ -35,7 +35,7 @@ jQuery(document).ready(function($) {
 
     // Templates
     
-    const quantityBreakTemplate = $('.variation-template.quantity-break').html();
+    const variationTemplate = $('.variation-template').html();
 
     // State
     let currentFilters = {
@@ -212,24 +212,27 @@ jQuery(document).ready(function($) {
   
       // Convert form data to object, excluding variation fields for now
       formData.forEach(field => {
-          if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
+          if (!['size[]', 'quantity_min[]', 'quantity_max[]', 'price[]', 'discount[]'].includes(field.name)) {
               productData[field.name] = field.value;
           }
       });
   
       // Collect Price Breaks
       $('.variation-row', activeVariationsContainer).each(function() {
+           const size = $('input[name="size[]"]', this).val();
           const min = $('input[name="quantity_min[]"]', this).val();
           const max = $('input[name="quantity_max[]"]', this).val();
           const price = $('input[name="price[]"]', this).val();
-          console.log(min);
+          const discount = $('input[name="discount[]"]', this).val();
   
           // Ensure that we at least have a min quantity and a price
           if (min !== '' && price !== '') {
               productData.prices.push({
+                   size: size,
                   quantity_min: min,
                   quantity_max: max !== '' ? max : null, // Allow for open-ended ranges
-                  price: price
+                  price: price,
+                   discount: discount !== '' ? discount : null
               });
           }
       });
@@ -272,22 +275,26 @@ jQuery(document).ready(function($) {
     
         // Convert form data to object, excluding variation fields
         formData.forEach(field => {
-            if (!['quantity_min[]', 'quantity_max[]', 'price[]'].includes(field.name)) {
+            if (!['size[]', 'quantity_min[]', 'quantity_max[]', 'price[]', 'discount[]'].includes(field.name)) {
                 productData[field.name] = field.value;
             }
         });
     
         // Collect Price Breaks
         $('.variation-row', activeVariationsContainer).each(function() {
+            const size = $('input[name="size[]"]', this).val();
             const min = $('input[name="quantity_min[]"]', this).val();
             const max = $('input[name="quantity_max[]"]', this).val();
             const price = $('input[name="price[]"]', this).val();
+            const discount = $('input[name="discount[]"]', this).val();
     
             if (min !== '' && price !== '') {
                 productData.prices.push({
+                    size: size,
                     quantity_min: min,
                     quantity_max: max !== '' ? max : null,
-                    price: price
+                    price: price,
+                    discount: discount !== '' ? discount : null
                 });
             }
         });
@@ -319,8 +326,7 @@ jQuery(document).ready(function($) {
      */
     function addVariation() {
        
-        let template = quantityBreakTemplate;
-        
+        let template = variationTemplate;
 
         activeVariationsContainer.append(template);
     }
