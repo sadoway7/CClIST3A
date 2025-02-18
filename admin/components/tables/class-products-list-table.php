@@ -5,18 +5,16 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 }
 
 class CC_Price_List_Products_Table extends WP_List_Table {
-    private $data_handler;
+     private $data_handler;
 
-    public function __construct() {
+    public function __construct($data_handler) {
         parent::__construct([
             'singular' => 'product',
             'plural'   => 'products',
             'ajax'     => false
         ]);
 
-        // Initialize data handler
-        global $cc_price_list_data_handler;
-        $this->data_handler = $cc_price_list_data_handler;
+        $this->data_handler = $data_handler;
     }
 
     public function get_columns() {

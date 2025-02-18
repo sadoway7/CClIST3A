@@ -20,12 +20,20 @@ class CC_Price_List_Admin {
     private $version;
 
     /**
+     * Instance of the data handler
+     *
+     * @var CC_Price_List_Data_Handler
+     */
+    private $data_handler;
+
+    /**
      * Initialize the class and set its properties.
      *
      * @param string $version The version of this plugin.
      */
     public function __construct($version) {
         $this->version = $version;
+        $this->data_handler = new CC_Price_List_Data_Handler();
     }
 
     /**
@@ -122,7 +130,8 @@ class CC_Price_List_Admin {
      * Render the main admin page.
      */
     public function display_plugin_admin_page() {
-        include_once 'components/tables/class-products-list-table.php';
+        $products_table = new CC_Price_List_Products_Table($this->data_handler);
+        $products_table->prepare_items();
         include_once 'views/admin-display.php';
     }
 
@@ -130,15 +139,15 @@ class CC_Price_List_Admin {
      * Render the add new product page.
      */
     public function display_add_new_page() {
-        include_once 'components/forms/class-product-form.php';
-        include_once 'views/add-new-display.php';
+        
+        include_once 'components/forms/add-product-form.php';
     }
     
     /**
      * Render the edit product page.
      */
     public function display_edit_page() {
-        include_once 'views/edit-display.php';
+        include_once 'components/forms/edit-product-form.php';
     }
 
     /**
@@ -152,12 +161,9 @@ class CC_Price_List_Admin {
      * Register REST API endpoints.
      */
     public function register_rest_endpoints() {
-        require_once CC_PRICE_LIST_PLUGIN_DIR . 'includes/class-cc-price-list-data-handler.php';
-        $data_handler = new CC_Price_List_Data_Handler();
-
         register_rest_route('cclist/v1', '/products', array(
             'methods' => 'GET',
-            'callback' => array($data_handler, 'get_products_for_api'),
+            'callback' => array($this->data_handler, 'get_products_for_api'),
             'permission_callback' => '__return_true'
         ));
     }
@@ -182,6 +188,25 @@ class CC_Price_List_Admin {
         if (isset($_GET['order'])) {
             $filters['order'] = sanitize_text_field($_GET['order']);
         }
+          if (isset($_GET['size'])) {
+            $filters['size'] = sanitize_text_field($_GET['size']);
+        }
+
+        if (isset($_GET['price_min'])) {
+            $filters['price_min'] = sanitize_text_field($_GET['price_min']);
+        }
+
+        if (isset($_GET['price_max'])) {
+            $filters['price_max'] = sanitize_text_field($_GET['price_max']);
+        }
+
+        if (isset($_GET['quantity_min'])) {
+            $filters['quantity_min'] = sanitize_text_field($_GET['quantity_min']);
+        }
+
+        if (isset($_GET['quantity_max'])) {
+            $filters['quantity_max'] = sanitize_text_field($_GET['quantity_max']);
+        }
         if (isset($_GET['per_page'])) {
             $filters['per_page'] = intval($_GET['per_page']);
         }
@@ -189,8 +214,8 @@ class CC_Price_List_Admin {
             $filters['page'] = intval($_GET['page']);
         }
 
-        $data_handler = new CC_Price_List_Data_Handler();
-        $products = $data_handler->get_products($filters);
+        
+        $products = $this->data_handler->get_products($filters);
         
         // Convert data to format expected by admin.js and the WP_List_Table
         $formatted_products = array_map(function($item) {
@@ -224,9 +249,7 @@ class CC_Price_List_Admin {
      */
     public function ajax_get_categories() {
         check_ajax_referer('cc_price_list_nonce', 'nonce');
-
-        $data_handler = new CC_Price_List_Data_Handler();
-        $categories = $data_handler->get_categories();
+        $categories = $this->data_handler->get_categories();
 
         wp_send_json_success($categories);
     }
@@ -286,11 +309,11 @@ class CC_Price_List_Admin {
             }
         }
             
-        $data_handler = new CC_Price_List_Data_Handler();
+        
 
         // Add each variation as individual product
         foreach($variations as $variation){
-            $result = $data_handler->add_product(array_merge(array(
+            $result = $this->data_handler->add_product(array_merge(array(
                 'category' => $data['category'],
                 'item_name' => $data['item_name']
             ), $variation));
@@ -356,20 +379,20 @@ class CC_Price_List_Admin {
             }
         }
 
-        $data_handler = new CC_Price_List_Data_Handler();
+        
 
         // Update logic: Delete existing variations and re-add
         // First delete all current variations for this item_name
-        $existing_product = $data_handler->get_product($product_id);
+        $existing_product = $this->data_handler->get_product($product_id);
         if (!$existing_product) {
              wp_send_json_error( array( 'message' => 'Failed to edit product. Product to edit not found.' ) );
         }
 
-        $data_handler->delete_group($existing_product['item_name']);
+        $this->data_handler->delete_group($existing_product['item_name']);
 
         // Add each variation as individual product
         foreach($variations as $variation){
-            $result = $data_handler->add_product(array_merge(array(
+            $result = $this->data_handler->add_product(array_merge(array(
                 'category' => $data['category'],
                 'item_name' => $data['item_name']
             ), $variation));
@@ -393,8 +416,8 @@ class CC_Price_List_Admin {
             wp_send_json_error(array('message' => 'Group ID is required.'));
         }
 
-        $data_handler = new CC_Price_List_Data_Handler();
-        $result = $data_handler->delete_group($group_id);
+        
+        $result = $this->data_handler->delete_group($group_id);
 
         if ($result) {
             wp_send_json_success(array('message' => 'Group deleted successfully.'));
@@ -417,13 +440,13 @@ class CC_Price_List_Admin {
         // Sanitize each group ID
         $sanitized_group_ids = array_map('sanitize_text_field', $group_ids);
 
-        $data_handler = new CC_Price_List_Data_Handler();
+        
 
         $success_count = 0;
         $error_count = 0;
 
         foreach($sanitized_group_ids as $group_id){
-            $result = $data_handler->delete_group($group_id);
+            $result = $this->data_handler->delete_group($group_id);
             if($result){
                 $success_count++;
             } else {
@@ -461,7 +484,7 @@ class CC_Price_List_Admin {
             wp_send_json_error(array('message' => 'Invalid file type. Please upload a CSV file.'));
         }
 
-        $data_handler = new CC_Price_List_Data_Handler();
+        
         $data = array();
 
         // Read the file
@@ -483,7 +506,7 @@ class CC_Price_List_Admin {
             }
             fclose($handle);
             
-            $import_result = $data_handler->import_products($data);
+            $import_result = $this->data_handler->import_products($data);
             wp_send_json_success(array('message' => "Imported {$import_result} products successfully."));
 
         } else {
@@ -497,9 +520,7 @@ class CC_Price_List_Admin {
     
     public function ajax_export_products(){
         check_ajax_referer('cc_price_list_nonce', 'nonce');
-        
-        $data_handler = new CC_Price_List_Data_Handler();
-        $export_data = $data_handler->export_products();
+        $export_data = $this->data_handler->export_products();
         
         // Generate CSV file name
         $filename = 'cc-price-list-export-' . date('Ymd-His') . '.csv';
@@ -584,22 +605,22 @@ class CC_Price_List_Admin {
                     }
                 }
             }
-            $data_handler = new CC_Price_List_Data_Handler();
+            
 
             // Update logic: Delete existing variations and re-add
             // First delete all current variations for this item_name
-            $existing_product = $data_handler->get_product($product_id);
+            $existing_product = $this->data_handler->get_product($product_id);
             if (!$existing_product) {
                 $error_message = 'Failed to edit product. Product to edit not found.';
                 wp_redirect(admin_url('admin.php?page=cc-price-list-edit&id=' . $product_id . '&error=' . urlencode($error_message)));
                 exit;
             }
 
-            $data_handler->delete_group($existing_product['item_name']);
+            $this->data_handler->delete_group($existing_product['item_name']);
 
             // Add each variation as individual product
             foreach($variations as $variation){
-                $result = $data_handler->add_product(array_merge(array(
+                $result = $this->data_handler->add_product(array_merge(array(
                     'category' => $data['category'],
                     'item_name' => $data['item_name']
                 ), $variation));
