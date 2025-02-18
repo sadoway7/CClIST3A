@@ -139,7 +139,6 @@ class CC_Price_List_Admin {
      * Render the add new product page.
      */
     public function display_add_new_page() {
-        
         include_once 'components/forms/add-product-form.php';
     }
     
